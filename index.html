@@ -265,9 +265,9 @@ input,select,textarea{font-size:16px!important}
 </div>
 
 <div class="page" id="pageHome">
-<div class="hero fade-in"><h2>👋 欢迎回来，<span id="welcomeName"></span></h2><p>选择章节开始答题，或使用一键组卷功能自定义试卷</p><div id="studentCourseInfo" style="margin-top:8px;font-size:13px;color:var(--text-secondary)"></div></div>
+<div class="hero fade-in"><h2>👋 欢迎回来，<span id="welcomeName"></span></h2><p>点击上方「📝 在线答题」开始练习，或用一键组卷自定义试卷</p><div id="studentCourseInfo" style="margin-top:8px;font-size:13px;color:var(--text-secondary)"></div></div>
 <div class="stats-grid fade-in" id="homeStats"></div>
-<div class="card fade-in"><div class="card-title"><span class="icon-box" style="background:var(--primary-light);color:var(--primary)">📚</span> 课程章节</div><div class="chapter-grid" id="chapterGrid"></div></div></div>
+<!-- v18.1：首页章节板块已移除，入口在「在线答题」 --></div>
 
 <div class="page" id="pageQuiz">
 <div id="quizChapterSelect">
@@ -3781,12 +3781,7 @@ if(!currentUser.isAdmin){
 var pet=getPetData()||initPet();
 $('homeStats').innerHTML+='<div class="stat-card" style="cursor:pointer" onclick="switchPage(\'pet\')"><div class="stat-icon" style="background:#f3e5f5;color:#9c27b0">🐾</div><div class="stat-value" style="font-size:20px">'+pet.stage.emoji+' Lv.'+pet.stage.level+'</div><div class="stat-label">'+pet.stage.name+'</div></div>'
 }
-var g='';
-chapters.forEach(function(ch,i){var data=ds[ch.id]||{score:0,total:0,correct:0,accuracy:0},sc=data.score,qn=ch.questions.length;
-var isSafe=isSafetyChapter(ch.id);
-var safeColor=isSafe?ch.color:'#e91e63';
-g+='<div class="chapter-card'+(isSafe?'" style="border-left:4px solid '+safeColor+';background:linear-gradient(135deg,#fff,'+(ch.id==='ch10'?'#fff3e0':'#fce4ec')+')':'')+'" onclick="startQuiz(\''+ch.id+'\')"><div class="chapter-num">'+(isSafe?'📝 安全考核':('第'+(i+1)+'章'))+'</div><h3>'+ch.icon+' '+ch.name+'</h3><p>'+ch.desc+'</p><div class="chapter-meta"><span>📋 '+qn+'题</span><span>📊 '+sc+'分</span>'+(isSafe?'<span style="color:'+safeColor+';font-weight:600">🏆 100分制 · 85分及格</span>':'')+'</div><div class="progress-bar"><div class="fill" style="width:'+sc+'%;background:'+ch.color+'"></div></div></div>'});
-$('chapterGrid').innerHTML=g
+/* v18.1：首页不再重复展示课程章节 —— 章节目录统一在「在线答题」页，避免点了不跳转的死入口 */
 }
 
 function renderQuizSelect(){
@@ -6198,37 +6193,128 @@ $('adminProfileModal').style.display='flex'
 
 function closeAdminProfileModal(){$('adminProfileModal').style.display='none'}
 
-var PET_STAGES=[
-{minScore:0,emoji:'🥚',name:'灵蛋',level:1,color:'#9e9e9e',desc:'一颗蕴含能量的神秘之蛋'},
-{minScore:60,emoji:'🐣',name:'萌雏',level:2,color:'#8bc34a',desc:'破壳而出的幼小生灵'},
-{minScore:150,emoji:'🐥',name:'灵雀',level:3,color:'#4caf50',desc:'羽翼渐丰的灵动之鸟'},
-{minScore:280,emoji:'🦅',name:'苍鹰',level:4,color:'#ff9800',desc:'翱翔天际的勇敢猎手'},
-{minScore:420,emoji:'🐉',name:'神龙',level:5,color:'#f44336',desc:'传说中的至高存在'},
-{minScore:600,emoji:'🌟',name:'圣灵',level:6,color:'#9c27b0',desc:'超越凡尘的不朽之灵'}
+/* v18：宠物成长体系重做 —— 30 级 / 7 形态 / 经验曲线前快后慢
+   旧版满级仅 600 分（约 60 题）几套卷子就到顶；现满级约 30000 经验，配合形态进化拉长成长线。 */
+var PET_MAX_LEVEL=30;
+var PET_FORMS=[
+{minLevel:1,emoji:'🥚',name:'灵蛋',color:'#9e9e9e',desc:'一颗蕴含能量的神秘之蛋'},
+{minLevel:5,emoji:'🐣',name:'萌雏',color:'#8bc34a',desc:'破壳而出的幼小生灵'},
+{minLevel:10,emoji:'🐥',name:'灵雀',color:'#4caf50',desc:'羽翼渐丰的灵动之鸟'},
+{minLevel:15,emoji:'🦅',name:'苍鹰',color:'#ff9800',desc:'翱翔天际的勇敢猎手'},
+{minLevel:20,emoji:'🐲',name:'幼龙',color:'#ff5722',desc:'初露锋芒的龙族血脉'},
+{minLevel:25,emoji:'🐉',name:'神龙',color:'#f44336',desc:'传说中的至高存在'},
+{minLevel:30,emoji:'🌟',name:'圣灵',color:'#9c27b0',desc:'超越凡尘的不朽之灵'}
 ];
+/* 升到下一级所需经验：30 + 14*lv^1.5（1→2 级 44 分，29→30 级 2216 分） */
+function petExpNeed(lv){if(lv>=PET_MAX_LEVEL)return 0;return Math.round(30+14*Math.pow(lv,1.5))}
+function petExpTotalTo(lv){var s=0;for(var i=1;i<lv;i++)s+=petExpNeed(i);return s}
+function petLevelFromExp(exp){var e=Math.max(0,exp||0);for(var lv=PET_MAX_LEVEL;lv>1;lv--){if(e>=petExpTotalTo(lv))return lv}return 1}
+function petFormOf(lv){var f=PET_FORMS[0];for(var i=0;i<PET_FORMS.length;i++){if((lv||1)>=PET_FORMS[i].minLevel)f=PET_FORMS[i]}return f}
+/* 兼容旧代码（battle 等仍读 pet.stage.emoji/name/level） */
+function petStageCompat(lv){var L=lv||1,f=petFormOf(L);return{emoji:f.emoji,name:f.name,color:f.color,desc:f.desc,level:L,minScore:petExpTotalTo(L)}}
+function petStreakDays(h){
+var days={};
+(h||[]).forEach(function(r){if(!r)return;var raw=r.submittedAt||r.date;if(!raw)return;var d=new Date(raw);if(isNaN(d.getTime()))return;days[d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()]=1});
+function K(x){return x.getFullYear()+'-'+(x.getMonth()+1)+'-'+x.getDate()}
+var n=0,cur=new Date();
+if(!days[K(cur)])cur.setDate(cur.getDate()-1);
+for(var i=0;i<366;i++){if(!days[K(cur)])break;n++;cur.setDate(cur.getDate()-1)}
+return n
+}
+function calcPetExp(pet){
+var h=getHistory()||[];
+var scoreNow=0,answered=0,correct=0;
+h.forEach(function(r){var sc=(r&&r.sc)||0;scoreNow+=sc;answered++;if(sc>0)correct++});
+/* 关键：history 只保留最近 CONFIG.HISTORY_MAX 条，不能直接拿它的总分当终身经验，
+   否则答满上限后经验就永远不涨了。这里按「与上次记录的总分差」增量累加。 */
+var prev=(pet&&typeof pet.lastScoreSum==='number')?pet.lastScoreSum:null;
+var base;
+if(prev===null){base=scoreNow}
+else{base=(pet.baseExp||0)+Math.max(0,scoreNow-prev);if(scoreNow>base)base=scoreNow}
+var streak=petStreakDays(h);
+var wins=(pet&&pet.wins)||0;
+var exp=base,bonus=[];
+if(answered>=20&&correct/answered>=0.8){exp=Math.round(exp*1.1);bonus.push('正确率≥80% +10%')}
+if(wins>0){exp+=wins*80;bonus.push('对决胜利 '+wins+' 场 +'+(wins*80))}
+if(streak>1){exp+=streak*15;bonus.push('连续 '+streak+' 天 +'+(streak*15))}
+return{exp:exp,baseExp:base,scoreNow:scoreNow,answered:answered,correct:correct,rate:answered>0?correct/answered:0,streak:streak,bonus:bonus}
+};
 
 function getPetData(){if(!currentUser)return null;try{return JSON.parse(strg.getItem('plc_pet_'+currentUser.id))||null}catch(e){return null}}
 function savePetData(pet){if(!currentUser)return;safeSetItem('plc_pet_'+currentUser.id,JSON.stringify(pet));cloudWrite('pet_data',{pet:pet})}
-function initPet(){var pet=getPetData();if(!pet){var h=getHistory();var totalScore=h.reduce(function(s,r){return s+(r.sc||0)},0);var stage=getPetStage(totalScore);pet={name:currentUser.name+'的灵兽',stage:stage,totalScore:totalScore,wins:0,battles:0};savePetData(pet)}return pet}
-function getPetStage(totalScore){var stage=PET_STAGES[0];for(var i=PET_STAGES.length-1;i>=0;i--){if(totalScore>=PET_STAGES[i].minScore){stage=PET_STAGES[i];break}}return stage}
-function updatePetScore(){var pet=getPetData();if(!pet)return;var h=getHistory();var totalScore=h.reduce(function(s,r){return s+(r.sc||0)},0);pet.totalScore=totalScore;pet.stage=getPetStage(totalScore);savePetData(pet)}
+function initPet(){
+var pet=getPetData();
+var isNew=!pet;
+if(isNew){pet={name:currentUser.name+'的灵兽',exp:0,level:1,totalScore:0,wins:0,battles:0}}
+/* v18.3：新建时也把 level/stage 补全后再落库，避免存储里缺字段 */
+if(typeof pet.exp!=='number'){pet.exp=pet.totalScore||0}
+pet.level=petLevelFromExp(pet.exp);
+pet.stage=petStageCompat(pet.level);
+if(isNew){savePetData(pet)}
+return pet
+}
+function getPetStage(exp){return petStageCompat(petLevelFromExp(typeof exp==='number'?exp:0))}
+function updatePetScore(){
+var pet=getPetData();
+if(!pet){pet=initPet()}
+if(!pet)return null;
+var m=calcPetExp(pet);
+var prevExp=pet.exp,prevLv=pet.level;
+pet.baseExp=m.baseExp;pet.lastScoreSum=m.scoreNow;
+pet.exp=m.exp;pet.level=petLevelFromExp(m.exp);pet.stage=petStageCompat(pet.level);
+pet.totalScore=m.baseExp;pet.answered=m.answered;pet.correct=m.correct;
+pet.rate=Math.round(m.rate*100);pet.streak=m.streak;pet.bonus=m.bonus;
+/* 经验没变化就只写本地，避免每次进宠物页都往云端塞一条记录 */
+if(prevExp!==pet.exp||prevLv!==pet.level||typeof prevExp!=='number'){savePetData(pet)}
+else{safeSetItem('plc_pet_'+currentUser.id,JSON.stringify(pet))}
+return pet
+}
 
 function renderPet(){
 if(!currentUser||currentUser.isAdmin)return;
-var pet=initPet();updatePetScore();pet=getPetData();
-var nextStage=null;
-for(var i=0;i<PET_STAGES.length;i++){if(PET_STAGES[i].minScore>pet.totalScore){nextStage=PET_STAGES[i];break}}
-var expInStage=pet.totalScore-pet.stage.minScore;
-var expNeeded=nextStage?nextStage.minScore-pet.stage.minScore:100;
-var expPct=nextStage?Math.min(100,Math.round(expInStage/expNeeded*100)):100;
+var pet=updatePetScore()||initPet()||getPetData();
+if(!pet)return;
+var lv=pet.level||1,form=petFormOf(lv);
+var base=petExpTotalTo(lv),need=petExpNeed(lv);
+var inLv=Math.max(0,(pet.exp||0)-base);
+var pct=lv>=PET_MAX_LEVEL?100:Math.min(100,Math.round(inLv/need*100));
+var TOTAL=petExpTotalTo(PET_MAX_LEVEL);
+var totalPct=Math.min(100,Math.round((pet.exp||0)/TOTAL*100));
+var nextForm=null;
+for(var i=0;i<PET_FORMS.length;i++){if(PET_FORMS[i].minLevel>lv){nextForm=PET_FORMS[i];break}}
 var winRate=pet.battles>0?Math.round(pet.wins/pet.battles*100):0;
-var html='<div class="pet-card fade-in"><div class="pet-avatar">'+pet.stage.emoji+'</div><div class="pet-name">'+pet.name+'</div><div class="pet-level" style="background:'+pet.stage.color+'">Lv.'+pet.stage.level+' '+pet.stage.name+'</div><div style="margin-top:8px;font-size:13px;color:var(--text-secondary)">'+pet.stage.desc+'</div><div class="pet-exp-bar"><div class="pet-exp-fill" style="width:'+expPct+'%"></div></div><div class="pet-exp-text">经验值 '+pet.totalScore+' / '+(nextStage?nextStage.minScore:'MAX')+(nextStage?' (距下级还需'+(nextStage.minScore-pet.totalScore)+'分)':' (已满级)')+'</div><div class="pet-stats"><span class="pet-stat">⚔️ 对战 <span>'+pet.battles+'场</span></span><span class="pet-stat">🏆 胜率 <span>'+winRate+'%</span></span><span class="pet-stat">📊 总分 <span>'+pet.totalScore+'</span></span></div></div>';
-html+='<div class="card fade-in" style="margin-top:16px"><div class="card-title">📈 成长历程</div><div style="padding:8px 0">';
-PET_STAGES.forEach(function(s){
-var unlocked=pet.totalScore>=s.minScore;var isCurrent=pet.stage.level===s.level;
-html+='<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)'+(isCurrent?';background:var(--primary-light);border-radius:8px;padding:10px 12px;margin:4px 0':'')+'"><span style="font-size:28px;'+(unlocked?'':'opacity:.3;filter:grayscale(1)')+'">'+s.emoji+'</span><div style="flex:1"><div style="font-weight:600;font-size:14px;'+(unlocked?'':'color:var(--text-secondary)')+'">Lv.'+s.level+' '+s.name+'</div><div style="font-size:12px;color:var(--text-secondary)">'+s.desc+' · 需要'+s.minScore+'分</div></div><span style="font-size:12px;font-weight:600;color:'+(unlocked?'var(--success)':'var(--text-secondary)')+'">'+(unlocked?'✅ 已解锁':'🔒')+'</span></div>'
+var rate=pet.answered>0?Math.round(pet.correct/pet.answered*100):0;
+var html='<div class="pet-card fade-in">'
++'<div class="pet-avatar">'+form.emoji+'</div>'
++'<div class="pet-name">'+esc(pet.name||'灵兽')+'</div>'
++'<div class="pet-level" style="background:'+form.color+'">Lv.'+lv+' '+form.name+'</div>'
++'<div style="margin-top:8px;font-size:13px;color:var(--text-secondary)">'+form.desc+'</div>'
++'<div class="pet-exp-bar"><div class="pet-exp-fill" style="width:'+pct+'%"></div></div>'
++'<div class="pet-exp-text">本级 '+inLv+' / '+need+'　·　总进度 '+totalPct+'%（'+pet.exp+' / '+TOTAL+'）</div>'
++(nextForm?'<div style="margin-top:6px;font-size:12px;color:var(--text-secondary)">下一形态：'+nextForm.emoji+' '+nextForm.name+'（Lv.'+nextForm.minLevel+'）</div>':'<div style="margin-top:6px;font-size:12px;color:var(--success);font-weight:600">已达成最高形态</div>')
++'<div class="pet-stats">'
++'<span class="pet-stat">📝 答题 <span>'+pet.answered+'题</span></span>'
++'<span class="pet-stat">🎯 正确率 <span>'+rate+'%</span></span>'
++'<span class="pet-stat">🔥 连续 <span>'+pet.streak+'天</span></span>'
++'<span class="pet-stat">⚔️ 胜率 <span>'+winRate+'%</span></span>'
++'</div></div>';
+html+='<div class="card fade-in" style="margin-top:16px"><div class="card-title">🧬 进化路线（7 形态 / '+PET_MAX_LEVEL+' 级）</div><div style="padding:8px 0">';
+PET_FORMS.forEach(function(f,idx){
+var nextMin=idx<PET_FORMS.length-1?PET_FORMS[idx+1].minLevel:PET_MAX_LEVEL+1;
+var unlocked=lv>=f.minLevel;
+var isCurrent=form.name===f.name;
+var hi=nextMin-1>PET_MAX_LEVEL?PET_MAX_LEVEL:nextMin-1;
+html+='<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)'+(isCurrent?';background:var(--primary-light);border-radius:8px;padding:10px 12px;margin:4px 0':'')+'"><span style="font-size:28px;'+(unlocked?'':'opacity:.3;filter:grayscale(1)')+'">'+f.emoji+'</span><div style="flex:1"><div style="font-weight:600;font-size:14px;'+(unlocked?'':'color:var(--text-secondary)')+'">'+f.name+'</div><div style="font-size:12px;color:var(--text-secondary)">'+f.desc+' · Lv.'+f.minLevel+'-'+hi+'</div></div><span style="font-size:12px;font-weight:600;color:'+(isCurrent?'var(--primary)':unlocked?'var(--success)':'var(--text-secondary)')+'">'+(isCurrent?'▶ 当前':unlocked?'✅ 已解锁':'🔒 Lv.'+f.minLevel)+'</span></div>'
 });
-html+='</div></div><div class="card fade-in" style="margin-top:16px;text-align:center"><p style="color:var(--text-secondary);margin-bottom:12px">💡 通过答题提升总分，宠物将自动成长进化！</p><button class="btn btn-primary btn-lg" onclick="switchPage(\'quiz\')">📝 去答题</button> <button class="btn btn-outline btn-lg" onclick="switchPage(\'battle\')">⚔️ 去对决</button></div>';
+html+='</div></div>';
+html+='<div class="card fade-in" style="margin-top:16px"><div class="card-title">💡 经验怎么涨</div><div style="font-size:13px;color:var(--text-secondary);line-height:1.9;padding:4px 0">'
++'· 答题得分：每 1 分 = 1 经验（主要来源）<br>'
++'· 正确率加成：答满 20 题且正确率 ≥ 80%，总经验 +10%<br>'
++'· 对决胜利：每胜 1 场 +80 经验<br>'
++'· 连续答题：每连续 1 天 +15 经验（最多计 60 天）<br>'
++'<span style="color:var(--text-secondary)">满级需约 '+TOTAL+' 经验，按每题 10 分算约 '+Math.round(TOTAL/10)+' 道题。</span>'
++'</div></div>';
+html+='<div class="card fade-in" style="margin-top:16px;text-align:center"><button class="btn btn-primary btn-lg" onclick="switchPage(\'quiz\')">📝 去答题</button> <button class="btn btn-outline btn-lg" onclick="switchPage(\'battle\')">⚔️ 去对决</button></div>';
 $('petContent').innerHTML=html
 }
 
