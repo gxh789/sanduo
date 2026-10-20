@@ -75,6 +75,40 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .login-form label{display:block;font-size:14px;font-weight:500;margin-bottom:6px}
 .login-form input,.login-form select{width:100%;padding:12px 16px;border:2px solid var(--border);border-radius:var(--radius-sm);font-size:15px;transition:border-color .2s;outline:none;font-family:inherit}
 .login-form input:focus,.login-form select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,115,232,.15)}
+/* v19.1：学生 / 教师登录并排 */
+.login-split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;max-width:940px;margin:34px auto 0;align-items:start}
+.login-split .login-form{max-width:none;margin:0}
+.login-split .login-form .card-title{font-size:16px}
+/* v19.5：管理后台吸顶标签菜单 */
+.admin-tabs{position:sticky;top:64px;z-index:60;display:flex;gap:6px;overflow-x:auto;padding:8px 2px;margin-bottom:14px;background:var(--bg,#f5f7fb);border-bottom:1px solid var(--border);scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.admin-tabs::-webkit-scrollbar{display:none}
+.admin-tab{flex:0 0 auto;padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:#fff;font-size:13px;cursor:pointer;white-space:nowrap;color:var(--text-secondary);transition:all .15s;font-family:inherit;line-height:1.4}
+.admin-tab:hover{border-color:var(--primary);color:var(--primary)}
+.admin-tab.active{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:600}
+/* v19.7：手机端教师后台优化 */
+.table-scroll-hint{display:none}
+@media(max-width:768px){
+  .page#pageAdmin .card{padding:14px 12px}
+  .admin-tab{font-size:12px;padding:6px 11px}
+  .admin-tabs{gap:5px;padding:7px 2px}
+  /* 实训工具栏：控件更紧凑、搜索框独占一行 */
+  #adminSecTraining select,#adminSecTraining input[type=text]{font-size:13px;padding:7px 10px;min-width:0;flex:1 1 44%}
+  #adminSecTraining input[type=text]#trainingSearch{flex:1 1 100%}
+  #adminSecTraining button{font-size:13px;padding:8px 10px}
+  /* 表格：容器横向滚动、表格不压缩、字号缩小 */
+  #trainingTableContainer{overflow-x:auto!important;overflow-y:visible;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:8px;max-width:100%}
+  #trainingTableContainer table{min-width:max-content!important;width:auto!important;table-layout:auto!important;margin:0}
+  #trainingTableContainer table th,#trainingTableContainer table td{font-size:12px;padding:7px 9px;white-space:nowrap}
+  #trainingTableContainer table thead th{position:sticky;top:0;z-index:2;background:#f5f6fa}
+  .table-scroll-hint{display:block;font-size:11px;color:var(--text-secondary);text-align:center;padding:4px 0 6px}
+  /* 自评互评面板按钮铺满两列 */
+  #evalControlPanel button{flex:1 1 45%}
+  /* 图表容器防溢出 */
+  #trainingChartsContainer canvas{max-width:100%!important;height:auto!important}
+  /* 学生列表卡片内的操作按钮更紧凑 */
+  #adminStudentList .card,#adminAccountList .card{padding:12px}
+}
+@media(max-width:820px){.login-split{grid-template-columns:1fr;gap:14px;max-width:460px;margin-top:18px}}
 .btn{padding:10px 24px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .2s;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
 .btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark)}.btn-success{background:var(--success);color:#fff}.btn-danger{background:var(--danger);color:#fff}
 .btn-outline{background:transparent;color:var(--primary);border:2px solid var(--primary)}.btn-outline:hover{background:var(--primary-light)}.btn-lg{padding:14px 32px;font-size:16px;border-radius:var(--radius)}.btn-block{width:100%;justify-content:center}
@@ -248,20 +282,20 @@ input,select,textarea{font-size:16px!important}
 
 <div class="page active" id="pageLogin">
 <div class="hero" style="margin-top:20px"><h2>⚡ 中职多主体 多维度 多元化的成长评价系统</h2><p></p></div>
+<div class="login-split">
 <div id="studentLoginForm">
 <div class="login-form card"><div class="card-title"><span class="icon-box" style="background:var(--primary-light);color:var(--primary)">🔑</span> 学生登录</div>
 <div class="form-group"><label>姓名</label><input type="text" id="studentName" placeholder="请输入你的姓名"></div>
 <div class="form-group"><label>班级</label><input type="text" id="studentClass" list="classList" placeholder="请选择或输入班级"><datalist id="classList"><option value="机电232班"><option value="机电241班"><option value="机电242班"><option value="机电243班"></datalist></div>
 <button class="btn btn-primary btn-lg btn-block" onclick="login()">进入系统</button>
-<div style="text-align:center;margin-top:16px"><a href="javascript:void(0)" onclick="showAdminLogin()" style="color:var(--text-secondary);font-size:13px;text-decoration:none">🔐 管理员入口</a></div>
 </div></div>
-<div id="adminLoginForm" style="display:none">
-<div class="login-form card"><div class="card-title"><span class="icon-box" style="background:var(--danger);color:#fff">🔐</span> 管理员登录</div>
-<div class="form-group"><label>管理员账号</label><input type="text" id="adminUser" placeholder="请输入管理员账号"></div>
+<div id="adminLoginForm">
+<div class="login-form card"><div class="card-title"><span class="icon-box" style="background:var(--danger);color:#fff">🔐</span> 教师登录</div>
+<div class="form-group"><label>教师账号</label><input type="text" id="adminUser" placeholder="请输入教师账号"></div>
 <div class="form-group"><label>密码</label><input type="password" id="adminPass" placeholder="请输入密码"></div>
-<button class="btn btn-primary btn-lg btn-block" onclick="adminLogin()">进入管理后台</button>
-<div style="text-align:center;margin-top:16px"><a href="javascript:void(0)" onclick="showStudentLogin()" style="color:var(--text-secondary);font-size:13px;text-decoration:none">← 返回学生登录</a></div>
+<button class="btn btn-primary btn-lg btn-block" onclick="adminLogin()">进入教师后台</button>
 </div></div>
+</div>
 </div>
 
 <div class="page" id="pageHome">
@@ -312,13 +346,15 @@ input,select,textarea{font-size:16px!important}
 <button class="btn btn-primary btn-sm" onclick="refreshAdminData()" id="adminRefreshBtn">🔄 刷新数据</button>
 <span id="adminLastRefresh" style="font-size:12px;color:var(--text-secondary)"></span>
 </div>
-<div class="card fade-in"><div class="card-title"><span class="icon-box" style="background:var(--primary-light);color:var(--primary)">👥</span> 学生列表 <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:8px">点击学生查看详细画像</span></div>
-<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="adminSearch" placeholder="搜索姓名/班级..." style="flex:1;min-width:140px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" oninput="adminStudentPage=1;renderAdminStudents()"><select id="adminSortFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="adminStudentPage=1;renderAdminStudents()"><option value="newest_desc">最新添加 ↓</option><option value="score_desc">平均分 ↓</option><option value="quiz_desc">答题次数 ↓</option><option value="name_asc">姓名 A→Z</option><option value="class_asc">班级 A→Z</option></select><select id="adminCategoryFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;display:none" onchange="adminStudentPage=1;renderAdminDashboard()"></select><select id="adminCourseFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;display:none" onchange="syncCourseFilter('admin');adminStudentPage=1;loadAdminData()"></select><select id="adminClassFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="onClassFilterChange('admin')" title="可按班级筛选；班级不在列表里时选「手动输入班级」"><option value="">全部班级</option><option value="机电232班">机电232班</option><option value="机电241班">机电241班</option><option value="机电242班">机电242班</option><option value="机电243班">机电243班</option></select></div>
-<div id="adminStudentList"></div></div>
-<div class="card fade-in"><div class="card-title"><span class="icon-box" style="background:#e8f5e9;color:#2e7d32">📋</span> 全部答题记录</div>
-<div id="adminAllRecords"></div></div>
-
-<div class="card fade-in" style="border-left:4px solid #e91e63"><div class="card-title"><span class="icon-box" style="background:#fce4ec;color:#e91e63">🔧</span> 实训考核管理 <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:8px">过程性考核 + 实训考核 + 综合总评</span></div>
+<div class="admin-tabs" id="adminTabs">
+<button class="admin-tab active" onclick="jumpAdminSection('adminSecTraining',this)">🔧 实训考核</button>
+<button class="admin-tab" onclick="jumpAdminSection('dimConfigCard',this)">📐 评价指标</button>
+<button class="admin-tab" onclick="jumpAdminSection('adminSecStudents',this)">👥 学生列表</button>
+<button class="admin-tab" onclick="jumpAdminSection('adminSecRecords',this)">📋 答题记录</button>
+<button class="admin-tab" onclick="jumpAdminSection('adminSecAccount',this)">🔑 学生账户</button>
+<button class="admin-tab" onclick="jumpAdminSection('adminManageCard',this)">👤 管理员</button>
+</div>
+<div class="card fade-in" id="adminSecTraining" style="border-left:4px solid #e91e63"><div class="card-title"><span class="icon-box" style="background:#fce4ec;color:#e91e63">🔧</span> 实训考核管理 <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:8px">过程性考核 + 实训考核 + 综合总评</span></div>
 <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
 <input type="text" id="trainingSearch" placeholder="搜索姓名/班级..." style="flex:1;min-width:120px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" oninput="renderTrainingTable()">
 <select id="trainingCategoryFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;display:none" onchange="renderTrainingTable()"></select>
@@ -326,16 +362,14 @@ input,select,textarea{font-size:16px!important}
 <select id="trainingClassFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="syncClassFilter('training')"><option value="">全部班级</option><option value="机电232班">机电232班</option><option value="机电241班">机电241班</option><option value="机电242班">机电242班</option><option value="机电243班">机电243班</option></select>
 <select id="trainingSortFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="trainingPage=1;renderTrainingTable()"><option value="newest_desc">最新添加 ↓</option><option value="composite_desc">综合分 ↓</option><option value="name_asc">姓名 A→Z</option><option value="name_desc">姓名 Z→A</option><option value="composite_asc">综合分 ↑</option><option value="theory_desc">安全准入分 ↓</option><option value="process_desc">过程分 ↓</option><option value="final_desc">实训分 ↓</option></select>
 <button class="btn btn-outline" onclick="initAllTrainingData()" title="为所有有答题记录的学生初始化实训考核数据">🔄 初始化全部数据</button>
-<button class="btn btn-outline" onclick="exportTrainingToExcel()" title="导出全班实训考核详细数据为Excel文件">📥 导出Excel</button>
+<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-size:13px;color:var(--text-secondary)">导出班级</span><select id="trainingExportClass" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" title="选择要导出的班级（只影响导出文件，不影响上方列表筛选）"><option value="">全部班级</option></select><button class="btn btn-outline" onclick="exportTrainingToExcel()" title="导出实训考核详细数据为Excel文件（按左侧「导出班级」选择）">📥 导出Excel</button></span>
 <button class="btn btn-primary" style="background:linear-gradient(135deg,#2e7d32,#43a047);border-color:#2e7d32" onclick="confirmSendAllReports()" title="一键发送所有学生的图表数据及文字说明">📨 一键发送全部学生</button> <button class="btn btn-primary btn-sm" style="background:linear-gradient(135deg,#5e35b1,#7e57c2);border-color:#5e35b1" onclick="switchPage('ai')" title="打开 AI 助教工作台">🤖 AI 助教</button>
 </div>
 <div id="evalControlPanel" style="margin-bottom:12px;padding:12px 16px;background:linear-gradient(135deg,#e3f2fd,#f3e5f5);border-radius:10px;border:1px solid #bbdefb"></div>
+<div class="table-scroll-hint">← 左右滑动查看全部列 →</div>
 <div id="trainingTableContainer"></div>
 <div id="trainingChartsContainer" style="margin-top:20px"></div>
 </div>
-
-<div class="card fade-in" style="border-left:4px solid #7b1fa2"><div class="card-title"><span class="icon-box" style="background:#f3e5f5;color:#7b1fa2">🔑</span> 学生账户管理 <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:8px">查看学生登录密码、重置密码</span></div>
-<div id="adminAccountList"></div></div>
 
 <div class="card fade-in" style="border-left:4px solid #ff9800" id="dimConfigCard"><div class="card-title"><span class="icon-box" style="background:#fff3e0;color:#e37400">📐</span> 评价指标配置 <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:8px" id="courseNameDisplay"></span></div>
 <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -345,10 +379,21 @@ input,select,textarea{font-size:16px!important}
 <button class="btn btn-outline btn-sm" onclick="syncAdminConfigToCloud()">☁️ 同步到云端</button>
 </div>
 <div style="background:#f5f5f5;padding:12px;border-radius:8px;margin-bottom:12px;font-size:13px;color:var(--text-secondary)">💡 以下评价指标仅对当前管理员生效，每个管理员可独立配置自己的实训课程评价指标。</div>
+<div id="stageConfigSection" style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px dashed var(--border)"><h4 style="margin-bottom:8px;font-size:14px">🗂️ 考核阶段设置 <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:6px">把「周一~周五」换成你自己的项目/任务阶段</span></h4><div id="stageConfigList"></div><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="addStage()">➕ 添加阶段</button><button class="btn btn-outline btn-sm" onclick="resetStages()">↩️ 恢复为「周一~周五」</button><button class="btn btn-primary btn-sm" onclick="saveStages()">💾 保存</button></div><div id="stageConfigHint" style="font-size:12px;color:var(--text-secondary);margin-top:8px"></div></div>
 <div id="processDimConfigSection" style="margin-bottom:16px"><h4 style="margin-bottom:8px;font-size:14px">📋 过程性评价维度</h4><div id="processDimConfigList"></div><button class="btn btn-outline btn-sm" onclick="showAddProcessDimModal()" style="margin-top:8px">➕ 添加过程性指标</button></div>
 <div id="finalDimConfigSection"><h4 style="margin-bottom:8px;font-size:14px">🏆 实训考核维度</h4><div id="finalDimConfigList"></div><button class="btn btn-outline btn-sm" onclick="showAddFinalDimModal()" style="margin-top:8px">➕ 添加实训考核指标</button></div>
 <div id="weightConfigSection" style="margin-top:20px;padding-top:16px;border-top:2px dashed var(--border)"><h4 style="margin-bottom:8px;font-size:14px">⚖️ 成绩权重配置</h4><div id="weightConfigList"></div></div>
 </div>
+
+<div class="card fade-in" id="adminSecStudents"><div class="card-title"><span class="icon-box" style="background:var(--primary-light);color:var(--primary)">👥</span> 学生列表 <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:8px">点击学生查看详细画像</span></div>
+<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="adminSearch" placeholder="搜索姓名/班级..." style="flex:1;min-width:140px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" oninput="adminStudentPage=1;renderAdminStudents()"><select id="adminSortFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="adminStudentPage=1;renderAdminStudents()"><option value="newest_desc">最新添加 ↓</option><option value="score_desc">平均分 ↓</option><option value="quiz_desc">答题次数 ↓</option><option value="name_asc">姓名 A→Z</option><option value="class_asc">班级 A→Z</option></select><select id="adminCategoryFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;display:none" onchange="adminStudentPage=1;renderAdminDashboard()"></select><select id="adminCourseFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;display:none" onchange="syncCourseFilter('admin');adminStudentPage=1;loadAdminData()"></select><select id="adminClassFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="onClassFilterChange('admin')" title="可按班级筛选；班级不在列表里时选「手动输入班级」"><option value="">全部班级</option><option value="机电232班">机电232班</option><option value="机电241班">机电241班</option><option value="机电242班">机电242班</option><option value="机电243班">机电243班</option></select></div>
+<div id="adminStudentList"></div></div>
+
+<div class="card fade-in" id="adminSecRecords"><div class="card-title"><span class="icon-box" style="background:#e8f5e9;color:#2e7d32">📋</span> 全部答题记录</div>
+<div id="adminAllRecords"></div></div>
+
+<div class="card fade-in" id="adminSecAccount" style="border-left:4px solid #7b1fa2"><div class="card-title"><span class="icon-box" style="background:#f3e5f5;color:#7b1fa2">🔑</span> 学生账户管理 <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:8px">查看学生登录密码、重置密码</span></div>
+<div id="adminAccountList"></div></div>
 
 <div class="card fade-in" style="border-left:4px solid #e91e63" id="adminManageCard"><div class="card-title"><span class="icon-box" style="background:#fce4ec;color:#e91e63">👤</span> 管理员管理 <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:8px">添加/删除管理员（仅超级管理员可用）</span></div>
 <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -1013,6 +1058,128 @@ final:(d&&d.final?d.final:DEFAULT_FINAL_DIMS).slice()
 };
 }
 var WEEKDAYS=['周一','周二','周三','周四','周五'];
+/* ============================================================
+ * v18 考核阶段（stages）：把「五天」抽象成 N 个可命名槽位
+ * ------------------------------------------------------------
+ * 设计要点：
+ *  - dailyScores 的键从中文天名（周一）归一为稳定 id（k1..kN）。
+ *    改名只改 name，不动数据键 —— 老师把「周一」改成「项目一」不会丢分。
+ *  - stages 只描述「第几个槽叫什么、启用还是停用」，数组顺序=展示顺序。
+ *  - 停用用 active:false，绝不删除（数据仍在，恢复后可继续用）。
+ *  - 未配置 stages 的老科目：不写字段、返回默认 k1..k5（周一..周五），
+ *    计算/导出/图表/自评互评全部与改造前逐字一致。
+ * ============================================================ */
+var LEGACY_ALIAS={'周一':'k1','周二':'k2','周三':'k3','周四':'k4','周五':'k5'};
+var STAGE_MAX=10;
+var STAGE_ID_RE=/^k([1-9]|10)$/;
+function stageIdOf(label){return LEGACY_ALIAS[label]||label}
+function stageLabelOf(id){for(var _sk in LEGACY_ALIAS){if(LEGACY_ALIAS[_sk]===id)return _sk}return null}
+function defaultStages(){
+var out=[];
+for(var i=0;i<WEEKDAYS.length;i++){out.push({id:'k'+(i+1),name:WEEKDAYS[i],active:true})}
+return out;
+}
+/* 阶段解析结果缓存：getAdminCourseConfig 每次都会 loadAdmins()（JSON.parse 整包），
+   而 getTrainingStudents 是逐学生循环，必须避免重复解析。saveAdmins/saveStages 会清缓存。 */
+var _stageCache={};
+function clearStageCache(){_stageCache={}}
+/* getStages(adminId, includeDisabled)
+   - 未配置 / 全部停用 → 默认 k1..k5（周一..周五）
+   - 脏 id（非 k1..k10 / 重复 / 空）自动修复成未占用的 k{n}
+   - includeDisabled=true 时返回含停用项（配置面板需要看到停用项） */
+function getStages(adminId,includeDisabled){
+var aid=adminId||'';
+if(!aid){
+try{aid=(typeof getCourseFilterAdminId==='function'&&getCourseFilterAdminId())||''}catch(e0){}
+if(!aid)aid=(currentUser&&currentUser.id)||'';
+}
+var ck=aid+'|'+(includeDisabled?1:0);
+if(_stageCache[ck])return _stageCache[ck];
+var cfg=null;
+try{cfg=getAdminCourseConfig(aid)}catch(e1){cfg=null}
+var raw=cfg&&cfg.stages;
+var list=[],used={};
+if(raw&&raw.length){
+for(var i=0;i<raw.length&&list.length<STAGE_MAX;i++){
+var it=raw[i];
+if(!it)continue;
+var id=it.id==null?'':String(it.id);
+if(!id||!STAGE_ID_RE.test(id)||used[id]){
+for(var n=1;n<=STAGE_MAX;n++){if(!used['k'+n]){id='k'+n;break}}
+}
+if(!id||used[id]||!STAGE_ID_RE.test(id))continue;
+used[id]=true;
+var nm=(it.name==null?'':String(it.name)).replace(/\s+/g,' ').trim();
+if(!nm)nm=stageLabelOf(id)||('阶段'+id.slice(1));
+list.push({id:id,name:nm,active:it.active!==false});
+}
+}
+var activeList=list.filter(function(s){return s.active});
+var result;
+if(activeList.length===0){result=defaultStages()}
+else{result=includeDisabled?list:activeList}
+_stageCache[ck]=result;
+return result;
+}
+function stageIds(adminId){return getStages(adminId).map(function(s){return s.id})}
+function stageNames(adminId){return getStages(adminId).map(function(s){return s.name})}
+function stageNameOf(adminId,id){
+var list=getStages(adminId,true);
+for(var i=0;i<list.length;i++){if(list[i].id===id)return list[i].name}
+return stageLabelOf(id)||null;
+}
+/* 学生端/展示用：按「当前上下文课程」把槽位 id 翻译成显示名 */
+function stageDisplayName(slot){
+var aid='';
+try{
+if(currentUser&&!currentUser.isAdmin){aid=getStudentCourse(currentUser.id)||''}
+if(!aid){aid=(typeof getCourseFilterAdminId==='function'&&getCourseFilterAdminId())||''}
+if(!aid&&currentUser)aid=currentUser.id;
+}catch(e){aid=(currentUser&&currentUser.id)||''}
+var nm=stageNameOf(aid,slot);
+return nm||stageLabelOf(slot)||slot;
+}
+/* 给 dailyScores 补齐所有启用阶段的空对象：只补不删（孤儿槽保留，数据不丢）。
+   老师把 3 个项目加到 6 个时，老学生只有 k1..k3 —— 不补的话
+   calcWeeklyProcessAvg 的分母会在不同学生之间不一致。 */
+function ensureStageShells(td,adminId,stagesOpt){
+if(!td)return td;
+if(!td.dailyScores)td.dailyScores={};
+var list=stagesOpt||getStages(adminId);
+for(var i=0;i<list.length;i++){
+var id=list[i].id;
+if(!td.dailyScores[id])td.dailyScores[id]={};
+}
+return td;
+}
+function normalizeStageKeys(td){
+if(!td||!td.dailyScores)return false;
+var ds=td.dailyScores,changed=false;
+for(var label in LEGACY_ALIAS){
+if(!Object.prototype.hasOwnProperty.call(LEGACY_ALIAS,label))continue;
+var src=ds[label];
+if(!src)continue;
+var id=LEGACY_ALIAS[label];
+if(!ds[id]){ds[id]=src}
+else{
+var dst=ds[id];
+if(!dst||typeof dst!=='object'){ds[id]=src}
+else{
+/* 逐维度合并：非空优先，绝不覆盖已有分数 */
+for(var dim in src){
+if(!Object.prototype.hasOwnProperty.call(src,dim))continue;
+var v=src[dim];
+if(v!==undefined&&v!==null&&v!==''){
+if(dst[dim]===undefined||dst[dim]===null||dst[dim]==='')dst[dim]=v;
+}else if(dst[dim]===undefined){dst[dim]=v}
+}
+}
+}
+delete ds[label];
+changed=true;
+}
+return changed;
+}
 var EVAL_DIMS=['安全规范','接线操作','程序设计','工位整理','纪律表现'];
 function scoreToGrade(score){
 if(score>=90)return'A';
@@ -1024,9 +1191,11 @@ function getEvalConfig(){
 try{return JSON.parse(strg.getItem('plc_eval_config'))||{}}catch(e){console.error('读取评价配置失败:',e);return{}}
 }
 function setEvalConfig(cfg){
-WEEKDAYS.forEach(function(day){
-if(cfg[day]&&cfg[day].pairings&&cfg[day].pairings.length>100){
-cfg[day].pairings=cfg[day].pairings.slice(0,100);
+/* v18：阶段不再固定为 5 天，按 cfg 实际键裁剪（保留旧键，兼容升级前的 周一..周五 配置） */
+Object.keys(cfg||{}).forEach(function(k){
+if(k==='adminId')return;
+if(cfg[k]&&cfg[k].pairings&&cfg[k].pairings.length>100){
+cfg[k].pairings=cfg[k].pairings.slice(0,100);
 }
 });
 safeSetItem('plc_eval_config',JSON.stringify(cfg));
@@ -1052,9 +1221,10 @@ function fetchEvalConfigFromCloud(callback){
   },function(){
     applyEvalConfig(latestCfg);
     if(evalConfigCount>0&&latestCfg){
-      var openDays=WEEKDAYS.filter(function(day){return latestCfg[day]&&latestCfg[day].open});
-      if(openDays.length>0){showToast('已获取最新评价配置：'+openDays.join('、')+'已开放','success')}
-      else{showToast('已获取最新评价配置：当前无开放日期','info')}
+      var openDays=Object.keys(latestCfg).filter(function(k){return k!=='adminId'&&latestCfg[k]&&latestCfg[k].open});
+      var openNames=openDays.map(function(k){return stageDisplayName(k)});
+      if(openDays.length>0){showToast('已获取最新评价配置：'+openNames.join('、')+'已开放','success')}
+      else{showToast('已获取最新评价配置：当前无开放阶段','info')}
     }
     if(callback)callback();
   },{maxPages:15}); /* t11.0：增大到 15 页，覆盖 CLOUD 全部数据 */
@@ -1062,9 +1232,16 @@ function fetchEvalConfigFromCloud(callback){
 function applyEvalConfig(cfg){
 if(!cfg)return;
 var localEvalCfg=safeJsonParse(strg.getItem('plc_eval_config'),{});
-WEEKDAYS.forEach(function(day){
-if(cfg[day]){localEvalCfg[day]=cfg[day]}
-else{delete localEvalCfg[day]}
+/* v18：改成「键并集」。原来只遍历 WEEKDAYS，项目制科目（k1..k3 / 自定义名）
+   永远拿不到云端配置。并集 = 本课程当前阶段 ∪ 旧天名 ∪ 云端带来的键 ∪ 本地已存键。 */
+var keys={};
+try{stageIds().forEach(function(k){keys[k]=1})}catch(e1){}
+Object.keys(LEGACY_ALIAS).forEach(function(k){keys[k]=1});
+Object.keys(cfg).forEach(function(k){if(k!=='adminId')keys[k]=1});
+Object.keys(localEvalCfg).forEach(function(k){if(k!=='adminId')keys[k]=1});
+Object.keys(keys).forEach(function(k){
+if(cfg[k]){localEvalCfg[k]=cfg[k]}
+else{delete localEvalCfg[k]}
 });
 safeSetItem('plc_eval_config',JSON.stringify(localEvalCfg));
 }
@@ -1094,7 +1271,17 @@ finish();
 },{maxPages:15});
 }
 function isEvalOpen(day){var cfg=getEvalConfig();
-return cfg[day]&&cfg[day].open;
+var e=cfg[day];
+if(!e||!e.open)return false;
+/* v18 R9：本地配置是全局一份，A 课(5天)的 k1 与 B 课(3项目)的 k1 会同时存在。
+   必须校验 courseId，否则学生会看到别的课程的开放状态。旧配置无 courseId 时自动跳过。 */
+try{
+if(e.courseId&&currentUser&&!currentUser.isAdmin){
+var my=getStudentCourse(currentUser.id);
+if(my&&e.courseId!==my)return false;
+}
+}catch(err){}
+return true;
 }
 function getEvalPairings(day,courseId){
 var cfg=getEvalConfig();
@@ -1146,6 +1333,14 @@ return allStudents;
 function getMyEvalPartner(day,studentId){
 var cfg=getEvalConfig();
 if(!cfg[day]||!cfg[day].pairings)return null;
+/* v18 R9：同上，跨课程同名槽位的配对必须隔离 */
+try{
+var _e=cfg[day];
+if(_e.courseId&&currentUser&&!currentUser.isAdmin){
+var _my=getStudentCourse(currentUser.id);
+if(_my&&_e.courseId!==_my)return null;
+}
+}catch(err){}
 var pairings=cfg[day].pairings;
 for(var i=0;i<pairings.length;i++){
 var p=pairings[i];
@@ -1159,7 +1354,19 @@ if(p.c===studentId)return{id:p.a,name:p.aName};
 return null;
 }
 function getEvalScore(studentId,day,type){
-try{return JSON.parse(strg.getItem('plc_eval_score_'+studentId+'_'+day+'_'+type))||null}catch(e){return null}
+/* v18：写新键（k1），读时先读新键、miss 再读旧中文键，
+   保证升级前已提交的自评/互评仍然能显示。 */
+function readKey(slot){
+if(!slot)return null;
+try{return JSON.parse(strg.getItem('plc_eval_score_'+studentId+'_'+slot+'_'+type))||null}catch(e){return null}
+}
+var v=readKey(day);
+if(v)return v;
+var alt1=stageLabelOf(day);          /* k1 → 周一 */
+if(alt1&&alt1!==day){v=readKey(alt1);if(v)return v}
+var alt2=stageIdOf(day);             /* 周一 → k1 */
+if(alt2&&alt2!==day){v=readKey(alt2);if(v)return v}
+return null;
 }
 function setEvalScore(studentId,day,type,scores,targetStudentId,targetStudentName){
 var key='plc_eval_score_'+studentId+'_'+day+'_'+type;
@@ -1280,6 +1487,7 @@ return saved;
 }catch(e){return getDefaultAdmins()}
 }
 function saveAdmins(a){
+try{clearStageCache()}catch(e0){}   /* v18：阶段配置可能随之变化，必须失效缓存 */
 safeSetItem('plc_admins',JSON.stringify(a));
 if(currentUser&&currentUser.isAdmin){
 cloudWrite('admins_config',{admins:a,syncedBy:currentUser.id,syncedAt:new Date().toISOString()},null,true);
@@ -1551,6 +1759,8 @@ return data;
 }catch(e){console.error('读取实训考核数据失败:',e);return{}}
 }
 function safeSetItem(key,value){
+/* v18：任何 plc_admins 写入（含云端恢复）都必须让阶段缓存失效，否则会读到旧阶段列表 */
+if(key==='plc_admins'){try{clearStageCache()}catch(e0){}}
 try{strg.setItem(key,value);return true}
 catch(e){
 console.warn('localStorage quota exceeded for key:',key);
@@ -1627,13 +1837,17 @@ function migrateTrainingData(data){
 var changed=false;
 Object.keys(data).forEach(function(sid){
 var td=data[sid];
-if(td&&td.dailyScores){
-WEEKDAYS.forEach(function(day){
-if(td.dailyScores[day]&&td.dailyScores[day]['自评与互评']!==undefined){
-var oldVal=td.dailyScores[day]['自评与互评'];
-td.dailyScores[day]['自评']=oldVal;
-td.dailyScores[day]['互评']=oldVal;
-delete td.dailyScores[day]['自评与互评'];
+if(!td)return;
+if(td.dailyScores){
+/* v18：先把旧天名键（周一→k1）归一化，幂等；第二次跑找不到旧键直接返回 false */
+if(normalizeStageKeys(td))changed=true;
+Object.keys(td.dailyScores).forEach(function(day){
+var bucket=td.dailyScores[day];
+if(bucket&&bucket['自评与互评']!==undefined){
+var oldVal=bucket['自评与互评'];
+bucket['自评']=oldVal;
+bucket['互评']=oldVal;
+delete bucket['自评与互评'];
 changed=true;
 }
 });
@@ -1656,9 +1870,9 @@ var data={dailyScores:{},finalScores:{}};
 var adminConfig=getAdminCourseConfig(adminId||'guoxiaohu');
 var processDims=adminConfig.processDims||DEFAULT_PROCESS_DIMS;
 var finalDims=adminConfig.finalDims||DEFAULT_FINAL_DIMS;
-WEEKDAYS.forEach(function(day){
-data.dailyScores[day]={};
-processDims.forEach(function(dim){data.dailyScores[day][dim]=''});
+getStages(adminId||'guoxiaohu').forEach(function(sg){
+data.dailyScores[sg.id]={};
+processDims.forEach(function(dim){data.dailyScores[sg.id][dim]=''});
 });
 finalDims.forEach(function(dim){data.finalScores[dim]=''});
 return data;
@@ -1712,14 +1926,17 @@ return Math.round(sum/dims.length);
 
 function calcDailyGrade(avg){if(avg>=90)return'A';if(avg>=80)return'B';if(avg>=60)return'C';return'D';}
 
-function calcWeeklyProcessAvg(dailyScores,processDims){
+/* v18：只把遍历源从 WEEKDAYS 换成阶段 id 列表，算法（缺录记 0、按已存在槽位摊薄）一字未改。
+   第 3 个参数可显式传入，避免在循环里重复解析阶段配置。 */
+function calcWeeklyProcessAvg(dailyScores,processDims,stageIdsArr){
 if(!dailyScores)return 70;
 var dims=processDims||DEFAULT_PROCESS_DIMS;
+var ids=stageIdsArr||stageIds();
 var sum=0;
 var count=0;
-WEEKDAYS.forEach(function(day){
-if(dailyScores[day]){
-sum+=calcDailyAvg(dailyScores[day],dims);
+ids.forEach(function(sid){
+if(dailyScores[sid]){
+sum+=calcDailyAvg(dailyScores[sid],dims);
 count++;
 }
 });
@@ -1787,14 +2004,16 @@ if(s<=0){a=0.2;b=0.3;c=0.5;s=1}
 return Math.round(theoryAvg*a/s+processAvg*b/s+finalAvg*c/s); /* 支持百分制或小数权重 */
 }
 
-function checkAlert(dailyScores,processDims){
+function checkAlert(dailyScores,processDims,stageIdsArr){
 if(!dailyScores)return false;
 var dims=processDims||DEFAULT_PROCESS_DIMS;
+var ids=stageIdsArr||stageIds();
 var hasAlert=false;
-WEEKDAYS.forEach(function(day){
-if(!dailyScores[day])return;
+ids.forEach(function(sid){
+var bucket=dailyScores[sid];
+if(!bucket)return;
 var dCount=0;
-dims.forEach(function(dim){if(dailyScores[day][dim]==='D')dCount++});
+dims.forEach(function(dim){if(bucket[dim]==='D')dCount++});
 if(dCount>=2)hasAlert=true;
 });
 return hasAlert;
@@ -1831,18 +2050,24 @@ var processDims=adminConfig.processDims||DEFAULT_PROCESS_DIMS;
 var finalDims=adminConfig.finalDims||DEFAULT_FINAL_DIMS;
 var adminWeights=getAdminWeights(effectiveAdminId);
 var finalDimWeights=getFinalDimWeights(effectiveAdminId);
+var stageList=getStages(effectiveAdminId);          /* v18：只解析一次，循环内复用 */
+var stageIdList=stageList.map(function(s){return s.id});
 var students=[];
 var processedNames={};
 if(currentUser&&currentUser.isAdmin&&adminStudentMap){
+/* v19.6：普通管理员只看选了自己课的学生；超管看全部 */
+var _scopeId=currentUser.isSuperAdmin?null:currentUser.id;
 Object.values(adminStudentMap).forEach(function(st){
 if(st.id&&st.id!=='admin'&&!processedNames[st.name]){
+if(_scopeId&&getStudentCourse(st.id)!==_scopeId)return;
 processedNames[st.name]=true;
 var td=all[st.id]||createDefaultTrainingData(effectiveAdminId);
+ensureStageShells(td,effectiveAdminId,stageList);    /* v18：补齐启用阶段的空壳 */
 var theoryAvg=getTheoryAvg(st.id);
-var processAvg=calcWeeklyProcessAvg(td.dailyScores,processDims);
+var processAvg=calcWeeklyProcessAvg(td.dailyScores,processDims,stageIdList);
 var finalAvg=calcFinalAvg(td.finalScores,finalDims,finalDimWeights);
 var composite=calcComposite(theoryAvg,processAvg,finalAvg,adminWeights);
-var alert=checkAlert(td.dailyScores,processDims);
+var alert=checkAlert(td.dailyScores,processDims,stageIdList);
 students.push({id:st.id,name:st.name,cls:st.cls,theoryAvg:theoryAvg,processAvg:processAvg,finalAvg:finalAvg,composite:composite,alert:alert,data:td,firstSeen:st.firstSeen||''});
 }
 });
@@ -1858,11 +2083,12 @@ if(activeClassFilter){
 var stCls=stInfo?stInfo.cls:(td.cls||'未知');
 if(!classMatch(stCls,activeClassFilter))return;
 }
+ensureStageShells(td,effectiveAdminId,stageList);    /* v18：补齐启用阶段的空壳 */
 var theoryAvg=getTheoryAvg(sid);
-var processAvg=calcWeeklyProcessAvg(td.dailyScores,processDims);
+var processAvg=calcWeeklyProcessAvg(td.dailyScores,processDims,stageIdList);
 var finalAvg=calcFinalAvg(td.finalScores,finalDims,finalDimWeights);
 var composite=calcComposite(theoryAvg,processAvg,finalAvg,adminWeights);
-var alert=checkAlert(td.dailyScores,processDims);
+var alert=checkAlert(td.dailyScores,processDims,stageIdList);
 var displayName=stInfo?stInfo.name:sid;
 students.push({id:sid,name:displayName,cls:stInfo?stInfo.cls:'未知',theoryAvg:theoryAvg,processAvg:processAvg,finalAvg:finalAvg,composite:composite,alert:alert,data:td,firstSeen:(stInfo&&stInfo.firstSeen)||''});
 }
@@ -1876,17 +2102,17 @@ var trainingPageSize=10;
 function renderEvalControlPanel(){
 var panel=$('evalControlPanel');if(!panel)return;
 var cfg=getEvalConfig();
-var admins=loadAdmins();
-var adminInfo=admins[currentUser.id]||{};
-var courseId=adminInfo.courseName||'';
-var html='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:16px">📋</span><span style="font-weight:700;font-size:15px;color:#1565c0">自评与互评开放控制</span><span style="font-size:12px;color:var(--text-secondary);margin-left:4px">点击按钮开放/关闭学生对应日期的自评互评</span></div>';
+var ctrlAdminId=getCourseFilterAdminId()||currentUser.id;
+var stageList=getStages(ctrlAdminId);
+var html='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:16px">📋</span><span style="font-weight:700;font-size:15px;color:#1565c0">自评与互评开放控制</span><span style="font-size:12px;color:var(--text-secondary);margin-left:4px">点击按钮开放/关闭学生对应阶段的自评互评</span></div>';
 html+='<div style="display:flex;gap:8px;flex-wrap:wrap">';
-WEEKDAYS.forEach(function(day){
+stageList.forEach(function(stage){
+var day=stage.id,dayName=stage.name;
 var isOpen=cfg[day]&&cfg[day].open;
 var hasPairings=cfg[day]&&cfg[day].pairings&&cfg[day].pairings.length>0;
 html+='<div style="display:flex;flex-direction:column;align-items:center;gap:4px">';
 if(isOpen){
-html+='<button class="btn btn-sm" style="background:#43a047;border-color:#43a047;color:#fff;min-width:80px;font-size:13px;padding:8px 12px" onclick="regenerateDayPairings(\''+day+'\')">🔄 重新配对'+day+'</button>';
+html+='<button class="btn btn-sm" style="background:#43a047;border-color:#43a047;color:#fff;min-width:80px;font-size:13px;padding:8px 12px" onclick="regenerateDayPairings(\''+day+'\')">🔄 重新配对'+esc(dayName)+'</button>';
 html+='<button class="btn btn-sm" style="background:#e53935;border-color:#e53935;color:#fff;min-width:80px;font-size:11px;padding:4px 8px;margin-top:2px" onclick="closeEvalDay(\''+day+'\')">🔒 关闭</button>';
 if(hasPairings){
 html+='<span style="font-size:11px;color:#43a047">✅ 已配对 '+cfg[day].pairings.length+' 组</span>';
@@ -1894,7 +2120,7 @@ html+='<span style="font-size:11px;color:#43a047">✅ 已配对 '+cfg[day].pairi
 html+='<span style="font-size:11px;color:#ff6d00">⚠️ 未配对</span>';
 }
 }else{
-html+='<button class="btn btn-sm" style="background:#1a73e8;border-color:#1a73e8;color:#fff;min-width:80px;font-size:13px;padding:8px 12px" onclick="openEvalDay(\''+day+'\')">🔓 开放'+day+'</button>';
+html+='<button class="btn btn-sm" style="background:#1a73e8;border-color:#1a73e8;color:#fff;min-width:80px;font-size:13px;padding:8px 12px" onclick="openEvalDay(\''+day+'\')">🔓 开放'+esc(dayName)+'</button>';
 html+='<span style="font-size:11px;color:var(--text-secondary)">未开放</span>';
 }
 html+='</div>';
@@ -1906,9 +2132,10 @@ html+='</div>';
 if(Object.keys(cfg).length>0){
 html+='<div style="margin-top:12px;padding:10px 12px;background:rgba(255,255,255,0.7);border-radius:8px;font-size:12px">';
 html+='<div style="font-weight:600;margin-bottom:6px;color:#1565c0">📊 配对详情</div>';
-WEEKDAYS.forEach(function(day){
+stageList.forEach(function(stage){
+var day=stage.id;
 if(!cfg[day]||!cfg[day].pairings||cfg[day].pairings.length===0)return;
-html+='<div style="margin-bottom:6px"><span style="font-weight:600;color:#455a64">'+day+'：</span>';
+html+='<div style="margin-bottom:6px"><span style="font-weight:600;color:#455a64">'+esc(stage.name)+'：</span>';
 cfg[day].pairings.forEach(function(p,i){
 html+='<span style="display:inline-block;padding:2px 8px;margin:2px;background:#e3f2fd;border-radius:4px;font-size:11px">'+esc(p.aName)+' ↔ '+esc(p.bName)+(p.cName?' + '+esc(p.cName):'')+'</span>'; /* t11.0：XSS转义 */
 });
@@ -1937,7 +2164,7 @@ showToast('当前课程下没有足够的学生进行配对（至少需要2人�
 cfg[day].open=false;
 }else{
 clearDayEvalScores(day);
-showToast(day+' 自评互评已开放，已生成 '+cfg[day].pairings.length+' 组配对','success');
+showToast(stageDisplayName(day)+' 自评互评已开放，已生成 '+cfg[day].pairings.length+' 组配对','success');
 }
 setEvalConfig(cfg);
 renderEvalControlPanel();
@@ -1951,7 +2178,7 @@ var cfg=getEvalConfig();
 if(cfg[day]){cfg[day].open=false;cfg[day].pairings=[]}
 setEvalConfig(cfg);
 renderEvalControlPanel();
-showToast(day+' 自评互评已关闭','info');
+showToast(stageDisplayName(day)+' 自评互评已关闭','info');
 }
 function regenerateDayPairings(day){
 /* t11.0-AI：同样先合并云端最新配置 */
@@ -1971,7 +2198,7 @@ showToast('当前课程下没有足够的学生进行配对','error');
 }else{
 cfg[day].open=true;
 clearDayEvalScores(day);
-showToast(day+' 已重新生成 '+cfg[day].pairings.length+' 组配对，旧评价数据已清除','success');
+showToast(stageDisplayName(day)+' 已重新生成 '+cfg[day].pairings.length+' 组配对，旧评价数据已清除','success');
 }
 setEvalConfig(cfg);
 renderEvalControlPanel();
@@ -1979,21 +2206,34 @@ renderEvalControlPanel();
 function clearDayEvalScores(day){
 var adminId=getCourseFilterAdminId()||currentUser.id;
 var allTraining=getTrainingData(adminId);
+/* v18：新键（k1）和旧中文键（周一）都要清 —— 只清一个的话，getEvalScore 的
+   旧键回退会把「已经清掉」的分数又读回来。 */
+var slots=[day];
+var a1=stageLabelOf(day);if(a1&&slots.indexOf(a1)<0)slots.push(a1);
+var a2=stageIdOf(day);if(a2&&slots.indexOf(a2)<0)slots.push(a2);
 Object.keys(allTraining).forEach(function(sid){
-if(allTraining[sid]&&allTraining[sid].dailyScores&&allTraining[sid].dailyScores[day]){
-delete allTraining[sid].dailyScores[day]['自评'];
-delete allTraining[sid].dailyScores[day]['互评'];
+var td=allTraining[sid];
+if(!td||!td.dailyScores)return;
+slots.forEach(function(sl){
+if(td.dailyScores[sl]){
+delete td.dailyScores[sl]['自评'];
+delete td.dailyScores[sl]['互评'];
 }
 });
+});
 saveTrainingData(allTraining,adminId);
+/* v18：不再用正则拼装（阶段名可能含括号等元字符），按末尾两段精确切分：
+   plc_eval_score_<studentId>_<slot>_<type> —— studentId 可能含下划线，所以从右往左切。 */
 var toRemove=[];
-/* t11.0 修复：原 indexOf 模糊匹配可能误删其他 key，改为精确格式匹配 */
-var dayRe=new RegExp('^plc_eval_score_.+_'+day+'_(self|peer)$');
+var PREFIX='plc_eval_score_';
 for(var i=0;i<strg.length;i++){
 var k=strg.key(i);
-if(k&&dayRe.test(k)){
-toRemove.push(k);
-}
+if(!k||k.indexOf(PREFIX)!==0)continue;
+var parts=k.slice(PREFIX.length).split('_');
+if(parts.length<3)continue;
+var tp=parts.pop();
+var sl=parts.pop();
+if((tp==='self'||tp==='peer')&&slots.indexOf(sl)>=0){toRemove.push(k)}
 }
 toRemove.forEach(function(k){strg.removeItem(k)});
 }
@@ -2005,19 +2245,25 @@ delete allTraining[currentUser.id].dailyScores[day]['自评'];
 delete allTraining[currentUser.id].dailyScores[day]['互评'];
 }
 saveTrainingData(allTraining,adminId);
-var selfKey='plc_eval_score_'+currentUser.id+'_'+day+'_self';
-var peerKey='plc_eval_score_'+currentUser.id+'_'+day+'_peer';
-strg.removeItem(selfKey);
-strg.removeItem(peerKey);
+/* v18：新旧键一起清，否则旧中文键回退会让分数"复活" */
+var slots=[day];
+var a1=stageLabelOf(day);if(a1&&slots.indexOf(a1)<0)slots.push(a1);
+var a2=stageIdOf(day);if(a2&&slots.indexOf(a2)<0)slots.push(a2);
+slots.forEach(function(sl){
+strg.removeItem('plc_eval_score_'+currentUser.id+'_'+sl+'_self');
+strg.removeItem('plc_eval_score_'+currentUser.id+'_'+sl+'_peer');
+});
 }
 function closeAllEval(){
 var cfg=getEvalConfig();
-WEEKDAYS.forEach(function(day){
-if(cfg[day])cfg[day].open=false;
+/* v18：按配置里实际存在的键关闭（含旧天名 + 项目制槽位），不再只看 5 天 */
+Object.keys(cfg).forEach(function(k){
+if(k==='adminId')return;
+if(cfg[k])cfg[k].open=false;
 });
 setEvalConfig(cfg);
 renderEvalControlPanel();
-showToast('已关闭所有日期的自评互评','info');
+showToast('已关闭所有阶段的自评互评','info');
 }
 var evalRefreshTimer=null;
 function renderEvalPage(){
@@ -2039,9 +2285,12 @@ function renderEvalPageContent(){
 if(!currentUser||currentUser.isAdmin)return;
 var container=$('evalContent');if(!container)return;
 var cfg=getEvalConfig();
+var stuAdminId=studentCourse||currentUser.id;
+var stageList=getStages(stuAdminId);
 var lastKnownRegen=safeJsonParse(strg.getItem('plc_eval_known_regen'),{});
 var regenChanged=false;
-WEEKDAYS.forEach(function(day){
+stageList.forEach(function(stage){
+var day=stage.id;
 if(cfg[day]&&cfg[day].regenerateTime){
 if(lastKnownRegen[day]&&lastKnownRegen[day]!==cfg[day].regenerateTime){
 clearStudentDayEvalScores(day);
@@ -2055,9 +2304,10 @@ safeSetItem('plc_eval_known_regen',JSON.stringify(lastKnownRegen));
 }
 var studentCourse=getStudentCourse(currentUser.id);
 var html='<div class="card fade-in"><div class="card-title"><span class="icon-box" style="background:#e3f2fd;color:#1565c0">📋</span> 自评与互评</div>';
-html+='<p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px">管理员开放对应日期后，你可以进行自评和互评</p>';
+html+='<p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px">管理员开放对应阶段后，你可以进行自评和互评</p>';
 var hasOpenDay=false;
-WEEKDAYS.forEach(function(day){
+stageList.forEach(function(stage){
+var day=stage.id,dayName=stage.name;
 var open=isEvalOpen(day);
 if(!open)return;
 hasOpenDay=true;
@@ -2068,7 +2318,7 @@ if(partner){
 peerScore=getEvalScore(currentUser.id,day,'peer');
 }
 html+='<div style="margin-bottom:16px;padding:14px 16px;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-radius:12px;border:1px solid #c8e6c9">';
-html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><span style="font-weight:700;font-size:15px;color:#2e7d32">📅 '+day+'</span><span style="font-size:12px;padding:3px 10px;background:#43a047;color:#fff;border-radius:12px">已开放</span></div>';
+html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><span style="font-weight:700;font-size:15px;color:#2e7d32">📅 '+esc(dayName)+'</span><span style="font-size:12px;padding:3px 10px;background:#43a047;color:#fff;border-radius:12px">已开放</span></div>';
 html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
 html+='<div style="padding:12px;background:rgba(255,255,255,0.8);border-radius:8px">';
 html+='<div style="font-weight:600;font-size:14px;margin-bottom:8px;color:#1565c0">🪞 自评</div>';
@@ -2106,7 +2356,7 @@ html+='</div>';
 html+='</div></div>';
 });
 if(!hasOpenDay){
-html+='<div style="text-align:center;padding:32px;color:var(--text-secondary)"><div style="font-size:48px;margin-bottom:12px">🔒</div><p style="font-size:15px;font-weight:500">当前没有开放自评互评的日期</p><p style="font-size:13px">请等待管理员开放对应日期</p></div>';
+html+='<div style="text-align:center;padding:32px;color:var(--text-secondary)"><div style="font-size:48px;margin-bottom:12px">🔒</div><p style="font-size:15px;font-weight:500">当前没有开放自评互评的阶段</p><p style="font-size:13px">请等待管理员开放对应阶段</p></div>';
 }
 html+='</div>';
 container.innerHTML=html;
@@ -2116,8 +2366,8 @@ function showSelfEvalForm(day){
 var existing=getEvalScore(currentUser.id,day,'self')||{};
 var html='<div id="selfEvalModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)this.remove()">';
 html+='<div style="background:#fff;border-radius:16px;padding:24px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2)">';
-html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:18px;color:#1565c0">🪞 '+day+' 自评</h3><button onclick="closeEvalModal(\'selfEvalModal\')" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999">&times;</button></div>';
-html+='<p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">请根据自己'+day+'的实训表现，对各项维度进行自我评价（0-100分）</p>';
+html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:18px;color:#1565c0">🪞 '+esc(stageDisplayName(day))+' 自评</h3><button onclick="closeEvalModal(\'selfEvalModal\')" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999">&times;</button></div>';
+html+='<p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">请根据自己'+esc(stageDisplayName(day))+'的实训表现，对各项维度进行自我评价（0-100分）</p>';
 EVAL_DIMS.forEach(function(dim){
 var val=existing[dim]||'';
 html+='<div style="margin-bottom:14px">';
@@ -2162,7 +2412,7 @@ allTraining[currentUser.id].dailyScores[day]['自评']=scoreToGrade(selfAvg);
 }
 saveTrainingData(allTraining,adminId);
 closeEvalModal('selfEvalModal');
-showToast(day+' 自评提交成功！','success');
+showToast(stageDisplayName(day)+' 自评提交成功！','success');
 renderEvalPage();
 }
 function showPeerEvalForm(day){
@@ -2171,9 +2421,9 @@ if(!partner){showToast('未找到配对搭档','error');return}
 var existing=getEvalScore(currentUser.id,day,'peer')||{};
 var html='<div id="peerEvalModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)this.remove()">';
 html+='<div style="background:#fff;border-radius:16px;padding:24px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2)">';
-html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:18px;color:#7b1fa2">🤝 '+day+' 互评</h3><button onclick="closeEvalModal(\'peerEvalModal\')" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999">&times;</button></div>';
+html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:18px;color:#7b1fa2">🤝 '+esc(stageDisplayName(day))+' 互评</h3><button onclick="closeEvalModal(\'peerEvalModal\')" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999">&times;</button></div>';
 html+='<div style="padding:10px 14px;background:#f3e5f5;border-radius:8px;margin-bottom:16px;font-size:14px"><span style="font-weight:600">评价对象：</span><span style="color:#7b1fa2">'+esc(partner.name)+'</span></div>'; /* t11.0：XSS转义 */
-html+='<p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">请根据搭档'+day+'的实训表现，对各项维度进行评价（0-100分）</p>';
+html+='<p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">请根据搭档'+esc(stageDisplayName(day))+'的实训表现，对各项维度进行评价（0-100分）</p>';
 EVAL_DIMS.forEach(function(dim){
 var val=existing[dim]||'';
 html+='<div style="margin-bottom:14px">';
@@ -2248,6 +2498,8 @@ return foundAdmin||Object.keys(admins)[0]||'guoxiaohu';
 
 function renderTrainingTable(page){
 if(!currentUser||!currentUser.isAdmin)return;
+/* v17：兜底——首次进入/下拉框还没填充过时补一次，之后由 updateClassFilters 负责刷新 */
+try{var _expClassSel=$('trainingExportClass');if(_expClassSel&&_expClassSel.options.length<2)refreshTrainingExportClassOptions()}catch(e){}
 if(!page)page=trainingPage;
 trainingPage=page;
 var courseFilterAdmin=getCourseFilterAdminId();
@@ -2260,7 +2512,7 @@ if(classFilter)students=students.filter(function(s){return classMatch(s.cls,clas
 if(!currentUser.isSuperAdmin){
 students=students.filter(function(s){
 var studentCourse=getStudentCourse(s.id||s.name);
-if(!studentCourse)return true;
+if(!studentCourse)return false;   /* v19.6：未选课不属于任何课程 */
 return studentCourse===currentUser.id;
 });
 }
@@ -2350,12 +2602,62 @@ html+='</div></div>';
 $('trainingTableContainer').innerHTML=html;
 }
 
+/* v17【2026-10-20 新增】：实训管理「导出班级」下拉框的选项构建。
+   选项来源 = 实训数据里真实出现过的班级(去重) ∪ 系统班级池(getKnownClasses)
+            ∪ 当前班级筛选值，统一用 canonicalClass 归一到班级池写法，
+   避免「机电232」与「机电232班」两种手输写法在下拉框里重复出现。
+   该下拉框与上方列表筛选完全独立：只作用于 exportTrainingToExcel()，不改变表格显示。 */
+function refreshTrainingExportClassOptions(){
+var sel=$('trainingExportClass');if(!sel)return;
+if(!currentUser||!currentUser.isAdmin)return;
+var prev=sel.value||'';
+var pool=[],seen={};
+function push(c){
+var norm=canonicalClass(c);
+if(!norm||norm==='未知')return;
+var k=classKey(norm);
+if(!k||seen[k])return;
+seen[k]=true;pool.push(norm);
+}
+/* 来源1：实训数据里真实存在的班级（最准，保证「该班级有数据」） */
+try{
+var aid=getCourseFilterAdminId()||currentUser.id;
+getTrainingStudents(aid).forEach(function(st){if(st&&st.cls)push(st.cls)});
+}catch(e1){}
+/* 来源2：系统班级池（默认班级 + 手动录入 + 学生真实班级 + 云端发现的班级） */
+try{getKnownClasses().forEach(push)}catch(e2){}
+/* 来源3：当前班级筛选值，避免老师已选班级却不在导出下拉里 */
+try{push(getClassFilterValue('admin'))}catch(e3){}
+pool.sort(function(a,b){return a.localeCompare(b,'zh-CN')});
+var html='<option value="">全部班级</option>';
+pool.forEach(function(c){html+='<option value="'+esc(c)+'">'+esc(c)+'</option>'});
+sel.innerHTML=html;
+/* 重刷后尽量保留用户原来的选择（按 classKey 容错匹配） */
+var wantKey=classKey(prev);
+sel.value='';
+if(wantKey){
+for(var i=0;i<pool.length;i++){
+if(classKey(pool[i])===wantKey){sel.value=pool[i];break}
+}
+}
+}
+
 function exportTrainingToExcel(){
 if(!currentUser||!currentUser.isAdmin)return;
 var courseFilterAdmin=getCourseFilterAdminId();
 var adminId=courseFilterAdmin||currentUser.id;
 var students=getTrainingStudents(adminId);
 if(students.length===0){showToast('没有可导出的数据','error');return}
+/* v17：导出班级选择。空值/'__custom__' 哨兵值一律视为「全部班级」，
+   此时不过滤，导出行为与改造前完全一致。 */
+var expClassSel=$('trainingExportClass');
+var expClassRaw=expClassSel?(expClassSel.value||''):'';
+if(expClassRaw==='__custom__')expClassRaw='';
+if(expClassRaw){
+students=students.filter(function(st){return classMatch(st.cls,expClassRaw)});
+if(students.length===0){showToast('该班级暂无实训数据','error');return}
+}
+var expClassLabel=expClassRaw?(canonicalClass(expClassRaw)||expClassRaw):'全部班级';
 var adminConfig=getAdminCourseConfig(adminId);
 var processDims=adminConfig.processDims||DEFAULT_PROCESS_DIMS;
 var finalDims=adminConfig.finalDims||DEFAULT_FINAL_DIMS;
@@ -2366,13 +2668,16 @@ var wT2=Math.round(expWeights.theory),wP2=Math.round(expWeights.process),wF2=Mat
 
 var wb=XLSX.utils.book_new();
 var aoa=[];
-aoa.push([adminConfig.courseName||'实训课程'+' · 实训考核成绩表']);
+/* v17：全部班级时标题保持原样（不加括号），选定班级时在标题后追加「（班级）」 */
+aoa.push([(adminConfig.courseName||'实训课程'+' · 实训考核成绩表')+(expClassRaw?'（'+expClassLabel+'）':'')]);
 aoa.push(['导出时间：'+new Date().toLocaleString('zh-CN')]);
 aoa.push([]);
 var expHasSafety=courseHasSafetyExam(adminConfig.category);
+/* v18：阶段只解析一次，表头 / 行值 / 列宽 / 样式四处必须同源，否则 !cols、!merges 会错位 */
+var expStages=getStages(adminId);
 var mainHeaders=['姓名','班级','专业大类',expHasSafety?('安全准入('+wT2+'%)'):'安全准入(本科目不设)','过程平均分(原始)','过程得分('+wP2+'%折算)','实训平均分(原始)','实训得分('+wF2+'%折算)','综合总评','预警状态'];
-WEEKDAYS.forEach(function(day){
-processDims.forEach(function(dim){mainHeaders.push(day+'-'+dim);});
+expStages.forEach(function(stage){
+processDims.forEach(function(dim){mainHeaders.push(stage.name+'-'+dim);});
 });
 finalDims.forEach(function(dim){mainHeaders.push('周末实训-'+dim);});
 mainHeaders.push('个性化文字评价'); /* t11.0 */
@@ -2381,9 +2686,11 @@ students.forEach(function(st){
 var stCat=getStudentCategory(st.id);
 var stCatInfo=CATEGORIES.find(function(c){return c.id===stCat})||{name:'未设'};
 var row=[st.name,st.cls,stCatInfo.name,expHasSafety?st.theoryAvg:'—',st.processAvg,Math.round(st.processAvg*wP2/100),st.finalAvg,Math.round(st.finalAvg*wF2/100),st.composite,st.alert?'重点辅导':'正常'];
-WEEKDAYS.forEach(function(day){
+expStages.forEach(function(stage){
+var slot=stage.id;
 processDims.forEach(function(dim){
-var val=(st.data&&st.data.dailyScores&&st.data.dailyScores[day]&&st.data.dailyScores[day][dim])||'';
+var bucket=(st.data&&st.data.dailyScores&&st.data.dailyScores[slot])||null;
+var val=(bucket&&bucket[dim])||'';
 row.push(val?'('+GRADE_MAP[val]+')':'未评(0)');
 });
 });
@@ -2406,7 +2713,7 @@ titleMerges.push({s:{r:aoa.length-2,c:0},e:{r:aoa.length-2,c:totalCols-1}});
 titleMerges.push({s:{r:aoa.length-1,c:0},e:{r:aoa.length-1,c:totalCols-1}});
 ws['!merges']=titleMerges;
 var colWidths=[{wch:10},{wch:10},{wch:14},{wch:14},{wch:14},{wch:14},{wch:14},{wch:10},{wch:10}];
-WEEKDAYS.forEach(function(day){
+expStages.forEach(function(stage){
 processDims.forEach(function(dim){colWidths.push({wch:12});});
 });
 finalDims.forEach(function(dim){colWidths.push({wch:14});});
@@ -2463,7 +2770,14 @@ if(R2===0)ws2[addr2].s.font.color={rgb:'FFFFFF'};
 }
 }
 XLSX.utils.book_append_sheet(wb,ws2,'班级统计汇总');
-XLSX.writeFile(wb,'实训考核全班数据_'+new Date().toISOString().slice(0,10)+'.xlsx');
+/* v17：文件名格式 <课程名>考核_<班级>_<YYYYMMDD>.xlsx，全部班级时班级位写「全部班级」 */
+var expNow=new Date();
+var expDateStr=''+expNow.getFullYear()
++(expNow.getMonth()+1<10?'0':'')+(expNow.getMonth()+1)
++(expNow.getDate()<10?'0':'')+expNow.getDate();
+var expFileBase=String((adminConfig.courseName||'实训')+'考核').replace(/[\\\/:*?"<>|]/g,'_');
+var expFileCls=String(expClassLabel).replace(/[\\\/:*?"<>|]/g,'_');
+XLSX.writeFile(wb,expFileBase+'_'+expFileCls+'_'+expDateStr+'.xlsx');
 showToast('Excel导出成功','success');
 }
 
@@ -2480,7 +2794,7 @@ else if(st.theoryAvg>0)parts.push('安全准入知识薄弱，需在教师指导
 else parts.push('尚未完成安全准入');
 // 过程维度：找最弱/最强
 var dimAcc={}, worstDim=null, worstAvg=100, bestDim=null, bestAvg=0;
-if(st.data&&st.data.dailyScores){WEEKDAYS.forEach(function(day){var ds=st.data.dailyScores[day]||{};processDims.forEach(function(dim){if(dim==='自评'||dim==='互评')return;if(!dimAcc[dim])dimAcc[dim]={s:0,c:0};var g=GRADE_MAP[ds[dim]]||0;if(g>0){dimAcc[dim].s+=g;dimAcc[dim].c++;}});});}
+if(st.data&&st.data.dailyScores){getStages().forEach(function(sg){var ds=st.data.dailyScores[sg.id]||{};processDims.forEach(function(dim){if(dim==='自评'||dim==='互评')return;if(!dimAcc[dim])dimAcc[dim]={s:0,c:0};var g=GRADE_MAP[ds[dim]]||0;if(g>0){dimAcc[dim].s+=g;dimAcc[dim].c++;}});});}
 Object.keys(dimAcc).forEach(function(dim){if(dimAcc[dim].c===0)return;var avg=Math.round(dimAcc[dim].s/dimAcc[dim].c);if(avg<worstAvg){worstAvg=avg;worstDim=dim;}if(avg>bestAvg){bestAvg=avg;bestDim=dim;}});
 if(worstDim&&worstAvg<70)parts.push('日常环节「'+worstDim+'」为薄弱项（均'+worstAvg+'分），需重点改进');
 if(bestDim&&bestAvg>=85)parts.push('「'+bestDim+'」表现突出（均'+bestAvg+'分），值得肯定');
@@ -2503,9 +2817,10 @@ var adminId=courseFilterAdmin||currentUser.id;
 var st=getTrainingStudents(adminId).find(function(s){return s.id===studentId});
 if(!st){showToast('学生数据不存在','error');return}
 var html='<div class="card fade-in"><div class="card-title"><span class="icon-box" style="background:#e8f5e9;color:#2e7d32">📊</span> '+esc(st.name)+' ('+esc(st.cls)+') 实训考核可视化分析</div>'; /* t11.0：XSS转义 */
-html+='<div class="chart-row"><div class="chart-box"><h5>📈 本周过程性平均分趋势（周一至周五）</h5><canvas id="trainingLineChart" style="max-height:300px"></canvas></div>';
+var _chartStages=getStages();
+html+='<div class="chart-row"><div class="chart-box"><h5>📈 过程性平均分趋势（'+_chartStages.length+' 个阶段）</h5><canvas id="trainingLineChart" style="max-height:300px"></canvas></div>';
 html+='<div class="chart-box"><h5>🎯 周末实训考核维度雷达图</h5><canvas id="trainingRadarChart" style="max-height:300px"></canvas></div>';
-html+='<div class="chart-box"><h5>📊 五天各维度得分变化趋势</h5><canvas id="trainingDimLineChart" style="max-height:300px"></canvas></div></div>';
+html+='<div class="chart-box"><h5>📊 各阶段各维度得分变化趋势</h5><canvas id="trainingDimLineChart" style="max-height:300px"></canvas></div></div>';
 html+='<div id="trainingAnalysisReport"></div>';
 html+='<div style="text-align:center;margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn btn-outline" onclick="renderTrainingTable();$(\'trainingChartsContainer\').innerHTML=\'\'">收起图表</button> <button class="btn btn-primary" onclick="downloadTrainingCharts(\''+st.id+'\')">📥 下载图表为图片</button> <button class="btn btn-outline" style="background:#e8f5e9;border-color:#4caf50;color:#2e7d32" onclick="sendReportToStudent(\''+st.id+'\')">📨 一键发送给学生</button></div></div>';
 $('trainingChartsContainer').innerHTML=html;
@@ -2526,12 +2841,15 @@ var adminConfig=getAdminCourseConfig(adminId);
 var processDims=adminConfig.processDims||DEFAULT_PROCESS_DIMS;
 var finalDims=adminConfig.finalDims||DEFAULT_FINAL_DIMS;
 var studentLabel=st.name+'('+st.cls+')';
+var chartStages=getStages(adminId);
+var chartSlotIds=chartStages.map(function(s){return s.id});
+var chartLabels=chartStages.map(function(s){return s.name});
 var dailyAvgs=[];
-WEEKDAYS.forEach(function(day){
-var dayData=(st.data&&st.data.dailyScores&&st.data.dailyScores[day])||{};
+chartSlotIds.forEach(function(slot){
+var dayData=(st.data&&st.data.dailyScores&&st.data.dailyScores[slot])||{};
 dailyAvgs.push(calcDailyAvg(dayData,processDims));
 });
-trainingLineChart=new Chart(lineCtx,{type:'line',data:{labels:WEEKDAYS,datasets:[{label:studentLabel+' 每日平均分',data:dailyAvgs,borderColor:'#1a73e8',backgroundColor:'rgba(26,115,232,0.1)',fill:true,tension:0.3,pointRadius:5,pointBackgroundColor:'#1a73e8'}]},options:{responsive:true,maintainAspectRatio:true,plugins:{title:{display:true,text:studentLabel+' 过程性平均分趋势',font:{size:14,weight:'bold'},color:'#1a237e',padding:{bottom:10}},legend:{labels:{font:{size:11}}}},scales:{y:{min:0,max:100,ticks:{stepSize:10}}}}});
+trainingLineChart=new Chart(lineCtx,{type:'line',data:{labels:chartLabels,datasets:[{label:studentLabel+' 阶段平均分',data:dailyAvgs,borderColor:'#1a73e8',backgroundColor:'rgba(26,115,232,0.1)',fill:true,tension:0.3,pointRadius:5,pointBackgroundColor:'#1a73e8'}]},options:{responsive:true,maintainAspectRatio:true,plugins:{title:{display:true,text:studentLabel+' 过程性平均分趋势',font:{size:14,weight:'bold'},color:'#1a237e',padding:{bottom:10}},legend:{labels:{font:{size:11}}}},scales:{y:{min:0,max:100,ticks:{stepSize:10}}}}});
 
 var radarValues=[];
 finalDims.forEach(function(dim){
@@ -2542,13 +2860,13 @@ trainingRadarChart=new Chart(radarCtx,{type:'radar',data:{labels:finalDims,datas
 
 var dimColors=['#1a73e8','#0d904f','#ff6d00','#d93025','#7b1fa2','#00838f'];
 var dimDatasets=processDims.map(function(dim,idx){
-var values=WEEKDAYS.map(function(day){
-var dayData=(st.data&&st.data.dailyScores&&st.data.dailyScores[day])||{};
+var values=chartSlotIds.map(function(slot){
+var dayData=(st.data&&st.data.dailyScores&&st.data.dailyScores[slot])||{};
 return GRADE_MAP[dayData[dim]]!==undefined?GRADE_MAP[dayData[dim]]:0;
 });
 return {label:dim,data:values,borderColor:dimColors[idx%dimColors.length],backgroundColor:'transparent',tension:0.3,pointRadius:3};
 });
-trainingDimLineChart=new Chart(dimLineCtx,{type:'line',data:{labels:WEEKDAYS,datasets:dimDatasets},options:{responsive:true,maintainAspectRatio:true,plugins:{title:{display:true,text:studentLabel+' 五天各维度得分变化',font:{size:14,weight:'bold'},color:'#1a237e',padding:{bottom:10}},legend:{position:'bottom',labels:{boxWidth:12,fontSize:10}}},scales:{y:{min:0,max:100,ticks:{stepSize:10}}}}});
+trainingDimLineChart=new Chart(dimLineCtx,{type:'line',data:{labels:chartLabels,datasets:dimDatasets},options:{responsive:true,maintainAspectRatio:true,plugins:{title:{display:true,text:studentLabel+' 各阶段各维度得分变化',font:{size:14,weight:'bold'},color:'#1a237e',padding:{bottom:10}},legend:{position:'bottom',labels:{boxWidth:12,fontSize:10}}},scales:{y:{min:0,max:100,ticks:{stepSize:10}}}}});
 }
 
 function generateTrainingAnalysis(st){
@@ -2572,7 +2890,7 @@ var courseFilterAdmin=getCourseFilterAdminId();
 var adminId=courseFilterAdmin||currentUser.id;
 var st=getTrainingStudents(adminId).find(function(s){return s.id===studentId});
 if(!st){showToast('学生数据不存在','error');return}
-var chartTitles=['过程性平均分趋势','周末实训考核维度雷达图','五天各维度得分变化'];
+var chartTitles=['过程性平均分趋势','周末实训考核维度雷达图','各阶段各维度得分变化'];
 var chartW=500,chartH=300;
 var padding=30;
 var reports=getTrainingAnalysisData(st);
@@ -2714,14 +3032,17 @@ tmpCtx.fillStyle='#999';
 tmpCtx.fillText('生成时间：'+new Date().toLocaleString('zh-CN'),totalW/2,46);
 tmpCtx.strokeStyle='#dadce0';tmpCtx.lineWidth=1;
 tmpCtx.moveTo(pad,headerH-4);tmpCtx.lineTo(totalW-pad,headerH-4);tmpCtx.stroke();
-var dailyAvgs=WEEKDAYS.map(function(day){
-var dayData=(st.data&&st.data.dailyScores&&st.data.dailyScores[day])||{};
+var _dlStages=getStages(adminId);
+var _dlIds=_dlStages.map(function(s){return s.id});
+var _dlLabels=_dlStages.map(function(s){return s.name});
+var dailyAvgs=_dlIds.map(function(slot){
+var dayData=(st.data&&st.data.dailyScores&&st.data.dailyScores[slot])||{};
 return calcDailyAvg(dayData,processDims);
 });
 var lineCanvas=document.createElement('canvas');
 lineCanvas.width=chartW*dpr;lineCanvas.height=chartH*dpr;
 lineCanvas.style.width=chartW+'px';lineCanvas.style.height=chartH+'px';
-var lineChart=new Chart(lineCanvas.getContext('2d'),{type:'line',data:{labels:WEEKDAYS,datasets:[{label:studentLabel+' 每日平均分',data:dailyAvgs,borderColor:'#1a73e8',backgroundColor:'rgba(26,115,232,0.1)',fill:true,tension:0.3,pointRadius:5,pointBackgroundColor:'#1a73e8'}]},options:{responsive:false,maintainAspectRatio:false,animation:false,plugins:{title:{display:true,text:'📈 过程性平均分趋势（周一至周五）',font:{size:15,weight:'bold'},color:'#1a237e',padding:{bottom:12}},legend:{labels:{font:{size:12}}}},scales:{y:{min:0,max:100,ticks:{stepSize:10}},x:{ticks:{font:{size:12}}}}}});
+var lineChart=new Chart(lineCanvas.getContext('2d'),{type:'line',data:{labels:_dlLabels,datasets:[{label:studentLabel+' 阶段平均分',data:dailyAvgs,borderColor:'#1a73e8',backgroundColor:'rgba(26,115,232,0.1)',fill:true,tension:0.3,pointRadius:5,pointBackgroundColor:'#1a73e8'}]},options:{responsive:false,maintainAspectRatio:false,animation:false,plugins:{title:{display:true,text:'📈 过程性平均分趋势（'+_dlStages.length+' 个阶段）',font:{size:15,weight:'bold'},color:'#1a237e',padding:{bottom:12}},legend:{labels:{font:{size:12}}}},scales:{y:{min:0,max:100,ticks:{stepSize:10}},x:{ticks:{font:{size:12}}}}}});
 tmpCtx.drawImage(lineCanvas,pad,headerH,chartW,chartH);
 lineChart.destroy();
 var radarValues=[];
@@ -2737,8 +3058,8 @@ tmpCtx.drawImage(radarCanvas,pad,headerH+chartH+gapH,chartW,chartH);
 radarChart.destroy();
 var dimColors=['#1a73e8','#0d904f','#ff6d00','#d93025','#7b1fa2','#00838f'];
 var dimDatasets=processDims.map(function(dim,idx){
-var values=WEEKDAYS.map(function(day){
-var dayData=(st.data&&st.data.dailyScores&&st.data.dailyScores[day])||{};
+var values=_dlIds.map(function(slot){
+var dayData=(st.data&&st.data.dailyScores&&st.data.dailyScores[slot])||{};
 return GRADE_MAP[dayData[dim]]!==undefined?GRADE_MAP[dayData[dim]]:0;
 });
 return {label:dim,data:values,borderColor:dimColors[idx%dimColors.length],backgroundColor:'transparent',tension:0.3,pointRadius:3};
@@ -2746,7 +3067,7 @@ return {label:dim,data:values,borderColor:dimColors[idx%dimColors.length],backgr
 var dimLineCanvas=document.createElement('canvas');
 dimLineCanvas.width=chartW*dpr;dimLineCanvas.height=chartH*dpr;
 dimLineCanvas.style.width=chartW+'px';dimLineCanvas.style.height=chartH+'px';
-var dimLineChart=new Chart(dimLineCanvas.getContext('2d'),{type:'line',data:{labels:WEEKDAYS,datasets:dimDatasets},options:{responsive:false,maintainAspectRatio:false,animation:false,plugins:{title:{display:true,text:'📊 五天各维度得分变化趋势',font:{size:15,weight:'bold'},color:'#1a237e',padding:{bottom:12}},legend:{position:'bottom',labels:{boxWidth:14,font:{size:11}}}},scales:{y:{min:0,max:100,ticks:{stepSize:10}},x:{ticks:{font:{size:12}}}}}});
+var dimLineChart=new Chart(dimLineCanvas.getContext('2d'),{type:'line',data:{labels:_dlLabels,datasets:dimDatasets},options:{responsive:false,maintainAspectRatio:false,animation:false,plugins:{title:{display:true,text:'📊 各阶段各维度得分变化趋势',font:{size:15,weight:'bold'},color:'#1a237e',padding:{bottom:12}},legend:{position:'bottom',labels:{boxWidth:14,font:{size:11}}}},scales:{y:{min:0,max:100,ticks:{stepSize:10}},x:{ticks:{font:{size:12}}}}}});
 tmpCtx.drawImage(dimLineCanvas,pad,headerH+(chartH+gapH)*2,chartW,chartH);
 dimLineChart.destroy();
 chartImageBase64=tmpCanvas.toDataURL('image/jpeg',0.85);
@@ -3201,9 +3522,12 @@ var processDims=adminConfig.processDims||DEFAULT_PROCESS_DIMS;
 var finalDims=adminConfig.finalDims||DEFAULT_FINAL_DIMS;
 var adminWeights=getAdminWeights(adminId);
 var finalDimWeights=getFinalDimWeights(adminId);
-var dailyAvgs=WEEKDAYS.map(function(day){return calcDailyAvg(dailyScores[day],processDims)});
+var anaStages=getStages(adminId);
+var anaIds=anaStages.map(function(s){return s.id});
+var anaNames=anaStages.map(function(s){return s.name});
+var dailyAvgs=anaIds.map(function(slot){return calcDailyAvg(dailyScores[slot],processDims)});
 var theoryAvg=getTheoryAvg(st.id);
-var processAvg=calcWeeklyProcessAvg(dailyScores,processDims);
+var processAvg=calcWeeklyProcessAvg(dailyScores,processDims,anaIds);
 var finalAvg=calcFinalAvg(finalScores,finalDims,finalDimWeights);
 var composite=calcComposite(theoryAvg,processAvg,finalAvg,adminWeights);
 var risingDays=0,fallingDays=0;
@@ -3212,37 +3536,37 @@ if(dailyAvgs[i]>dailyAvgs[i-1])risingDays++;
 else if(dailyAvgs[i]<dailyAvgs[i-1])fallingDays++;
 }
 if(risingDays>=3){
-reports.push({icon:'📈',type:'success',title:'过程性成绩上升趋势',text:'该生本周每日平均分呈明显上升趋势（'+risingDays+'天上升），学习状态持续向好，继续保持！'});
+reports.push({icon:'📈',type:'success',title:'过程性成绩上升趋势',text:'该生各阶段平均分呈明显上升趋势（'+risingDays+' 个阶段上升），学习状态持续向好，继续保持！'});
 }else if(risingDays>=2&&fallingDays<=1){
-reports.push({icon:'📈',type:'success',title:'过程性成绩稳步提升',text:'该生本周每日平均分整体呈上升趋势（'+risingDays+'天上升），学习态度积极，建议继续保持良好势头。'});
+reports.push({icon:'📈',type:'success',title:'过程性成绩稳步提升',text:'该生各阶段平均分整体呈上升趋势（'+risingDays+' 个阶段上升），学习态度积极，建议继续保持良好势头。'});
 }else if(fallingDays>=3){
-reports.push({icon:'📉',type:'danger',title:'过程性成绩下降趋势',text:'该生本周每日平均分呈下降趋势（'+fallingDays+'天下降），需要关注学习状态，建议及时辅导和鼓励。'});
+reports.push({icon:'📉',type:'danger',title:'过程性成绩下降趋势',text:'该生各阶段平均分呈下降趋势（'+fallingDays+' 个阶段下降），需要关注学习状态，建议及时辅导和鼓励。'});
 }else if(fallingDays>=2&&risingDays<=1){
-reports.push({icon:'📉',type:'warning',title:'过程性成绩有所下滑',text:'该生本周每日平均分出现下滑（'+fallingDays+'天下降），需关注是否存在学习困难，适当给予帮助。'});
+reports.push({icon:'📉',type:'warning',title:'过程性成绩有所下滑',text:'该生各阶段平均分出现下滑（'+fallingDays+' 个阶段下降），需关注是否存在学习困难，适当给予帮助。'});
 }else{
-reports.push({icon:'📊',type:'info',title:'过程性成绩基本稳定',text:'该生本周每日平均分波动不大，表现稳定。建议设定更高目标，争取突破。'});
+reports.push({icon:'📊',type:'info',title:'过程性成绩基本稳定',text:'该生各阶段平均分波动不大，表现稳定。建议设定更高目标，争取突破。'});
 }
 var maxDayIdx=dailyAvgs.indexOf(Math.max.apply(null,dailyAvgs));
 var minDayIdx=dailyAvgs.indexOf(Math.min.apply(null,dailyAvgs));
 if(maxDayIdx!==minDayIdx){
 var diff=dailyAvgs[maxDayIdx]-dailyAvgs[minDayIdx];
 if(diff>=20){
-reports.push({icon:'⚠️',type:'warning',title:'日间成绩波动较大',text:'最高分出现在'+WEEKDAYS[maxDayIdx]+'（'+dailyAvgs[maxDayIdx]+'分），最低分出现在'+WEEKDAYS[minDayIdx]+'（'+dailyAvgs[minDayIdx]+'分），差距达'+diff+'分，需关注成绩不稳定的原因。'});
+reports.push({icon:'⚠️',type:'warning',title:'阶段间成绩波动较大',text:'最高分出现在「'+anaNames[maxDayIdx]+'」（'+dailyAvgs[maxDayIdx]+'分），最低分出现在「'+anaNames[minDayIdx]+'」（'+dailyAvgs[minDayIdx]+'分），差距达'+diff+'分，需关注成绩不稳定的原因。'});
 }else if(diff>=10){
-reports.push({icon:'📋',type:'info',title:'日间成绩存在波动',text:'最高分'+WEEKDAYS[maxDayIdx]+'（'+dailyAvgs[maxDayIdx]+'分），最低分'+WEEKDAYS[minDayIdx]+'（'+dailyAvgs[minDayIdx]+'分），差距'+diff+'分，属正常波动范围。'});
+reports.push({icon:'📋',type:'info',title:'阶段间成绩存在波动',text:'最高分「'+anaNames[maxDayIdx]+'」（'+dailyAvgs[maxDayIdx]+'分），最低分「'+anaNames[minDayIdx]+'」（'+dailyAvgs[minDayIdx]+'分），差距'+diff+'分，属正常波动范围。'});
 }
 }
 var bestDay=dailyAvgs[maxDayIdx];
 if(bestDay>=90){
-reports.push({icon:'🌟',type:'success',title:'过程性表现优秀',text:WEEKDAYS[maxDayIdx]+'平均分达到'+bestDay+'分，表现优异！建议在保持优势的同时帮助其他同学。'});
+reports.push({icon:'🌟',type:'success',title:'过程性表现优秀',text:'「'+anaNames[maxDayIdx]+'」平均分达到'+bestDay+'分，表现优异！建议在保持优势的同时帮助其他同学。'});
 }else if(bestDay<60){
-reports.push({icon:'❗',type:'danger',title:'过程性表现需提升',text:'本周最高日均分仅为'+bestDay+'分，未达及格线，需要重点辅导，建议从基础操作开始强化训练。'});
+reports.push({icon:'❗',type:'danger',title:'过程性表现需提升',text:'各阶段最高平均分仅为'+bestDay+'分，未达及格线，需要重点辅导，建议从基础操作开始强化训练。'});
 }
 var strongDims=[],weakDims=[];
 processDims.forEach(function(dim){
 var dimSum=0,dimCount=0;
-WEEKDAYS.forEach(function(day){
-var dayData=dailyScores[day]||{};
+anaIds.forEach(function(slot){
+var dayData=dailyScores[slot]||{};
 var grade=dayData[dim]||'';
 dimSum+=(GRADE_MAP[grade]!==undefined?GRADE_MAP[grade]:0);
 dimCount++;
@@ -3271,18 +3595,18 @@ if(finalWeakDims.length>0){
 reports.push({icon:'📌',type:'danger',title:'实训考核薄弱维度',text:'周末实训考核中，'+finalWeakDims.map(function(d){return'「'+d.name+'」('+d.grade+'级/'+d.score+'分)'}).join('、')+'需要重点提升。'});
 }
 var dAlertDays=[];
-WEEKDAYS.forEach(function(day){
-var dayData=dailyScores[day]||{};
+anaIds.forEach(function(slot,si){
+var dayData=dailyScores[slot]||{};
 var dCount=0;
 processDims.forEach(function(dim){if(dayData[dim]==='D')dCount++});
-if(dCount>=2)dAlertDays.push(day);
+if(dCount>=2)dAlertDays.push(anaNames[si]);
 });
 if(dAlertDays.length>0){
 reports.push({icon:'🔴',type:'danger',title:'预警：存在多个D等级',text:dAlertDays.join('、')+'存在≥2个D等级的情况，该生在安全规范或操作流程方面可能存在隐患，需重点辅导！'});
 }
 var allAGrades=0,totalGrades=0;
-WEEKDAYS.forEach(function(day){
-var dayData=dailyScores[day]||{};
+anaIds.forEach(function(slot){
+var dayData=dailyScores[slot]||{};
 processDims.forEach(function(dim){
 if(dayData[dim]==='A')allAGrades++;
 totalGrades++;
@@ -3332,13 +3656,16 @@ td=createDefaultTrainingData(currentUser.id);
 st.data=td;
 }
 $('trainingEditTitle').textContent='✏️ 编辑实训成绩 - '+st.name+' ('+st.cls+')';
-var html='<div style="margin-bottom:16px"><h4 style="margin-bottom:12px;color:var(--primary)">📅 过程性考核（周一至周五）</h4>';
-WEEKDAYS.forEach(function(day){
-html+='<div class="training-day-block"><h5>📌 '+day+'</h5><div class="grade-row">';
+var editStages=getStages(adminId);
+ensureStageShells(td,adminId,editStages); /* v18：先补空壳，保证新加阶段也能录入 */
+var html='<div style="margin-bottom:16px"><h4 style="margin-bottom:12px;color:var(--primary)">📅 过程性考核（'+editStages.length+' 个阶段）</h4>';
+editStages.forEach(function(stage){
+var day=stage.id;
+html+='<div class="training-day-block"><h5>📌 '+esc(stage.name)+'</h5><div class="grade-row">';
 processDims.forEach(function(dim){
 var val=(td.dailyScores[day]&&td.dailyScores[day][dim])||'';
 var dimAttr=esc(dim); /* t11.0：转义，防止指标名注入属性 */
-html+='<div class="grade-item"><label>'+esc(dim)+'</label><select class="training-grade-select '+(val?'grade-'+val.toLowerCase():'grade-empty')+'" onchange="updateTrainingPreview();syncGradeStyle(this)" data-day="'+day+'" data-dim="'+dimAttr+'"><option value="" '+(!val?'selected':'')+'>未评(0)</option><option value="A" '+(val==='A'?'selected':'')+'>A(95)</option><option value="B" '+(val==='B'?'selected':'')+'>B(85)</option><option value="C" '+(val==='C'?'selected':'')+'>C(70)</option><option value="D" '+(val==='D'?'selected':'')+'>D(50)</option></select></div>';
+html+='<div class="grade-item"><label>'+esc(dim)+'</label><select class="training-grade-select '+(val?'grade-'+val.toLowerCase():'grade-empty')+'" onchange="updateTrainingPreview();syncGradeStyle(this)" data-slot="'+day+'" data-day="'+day+'" data-dim="'+dimAttr+'"><option value="" '+(!val?'selected':'')+'>未评(0)</option><option value="A" '+(val==='A'?'selected':'')+'>A(95)</option><option value="B" '+(val==='B'?'selected':'')+'>B(85)</option><option value="C" '+(val==='C'?'selected':'')+'>C(70)</option><option value="D" '+(val==='D'?'selected':'')+'>D(50)</option></select></div>';
 });
 html+='</div></div>';
 });
@@ -3376,7 +3703,7 @@ var editContent=$('trainingEditContent');
 if(!editContent)return;
 var selects=editContent.querySelectorAll('select.training-grade-select');
 selects.forEach(function(sel){
-var day=sel.dataset.day;
+var day=sel.dataset.slot||sel.dataset.day;   /* v18：优先 data-slot */
 var dim=sel.dataset.dim;
 var isFinal=sel.dataset.final==='true';
 if(isFinal){td.finalScores[dim]=sel.value;}
@@ -3390,19 +3717,21 @@ var processDims=adminConfig.processDims||DEFAULT_PROCESS_DIMS;
 var finalDims=adminConfig.finalDims||DEFAULT_FINAL_DIMS;
 var previewWeights=getAdminWeights(adminId);
 var previewDimWeights=getFinalDimWeights(adminId);
+var previewStages=getStages(adminId);
+var previewIds=previewStages.map(function(s){return s.id});
 var theoryAvg=getTheoryAvg(currentTrainingStudent);
-var processAvg=calcWeeklyProcessAvg(td.dailyScores,processDims);
+var processAvg=calcWeeklyProcessAvg(td.dailyScores,processDims,previewIds);
 var finalAvg=calcFinalAvg(td.finalScores,finalDims,previewDimWeights);
 var composite=calcComposite(theoryAvg,processAvg,finalAvg,previewWeights);
-var alert=checkAlert(td.dailyScores,processDims);
+var alert=checkAlert(td.dailyScores,processDims,previewIds);
 var grade=getCompositeGrade(composite);
 var html='';
-WEEKDAYS.forEach(function(day){
-var dayData=td.dailyScores[day]||{};
+previewStages.forEach(function(stage){
+var dayData=td.dailyScores[stage.id]||{};
 var da=calcDailyAvg(dayData,processDims);
 var dg=calcDailyGrade(da);
 var dCount=0;processDims.forEach(function(dim){if(dayData[dim]==='D')dCount++;});
-html+='<div class="training-preview-row"><span>'+day+'：平均 <b>'+da+'分</b> 等级 <b style="color:'+(dg==='A'?'#0d904f':dg==='B'?'#1a73e8':dg==='C'?'#e37400':'#d93025')+'">'+dg+'</b></span>'+(dCount>=2?' <span style="color:#d93025;font-size:11px">⚠️≥2个D</span>':'')+'</div>';
+html+='<div class="training-preview-row"><span>'+esc(stage.name)+'：平均 <b>'+da+'分</b> 等级 <b style="color:'+(dg==='A'?'#0d904f':dg==='B'?'#1a73e8':dg==='C'?'#e37400':'#d93025')+'">'+dg+'</b></span>'+(dCount>=2?' <span style="color:#d93025;font-size:11px">⚠️≥2个D</span>':'')+'</div>';
 });
 var stCourse=getStudentCourse(currentTrainingStudent);
 var theoryType='电工安全',previewNoSafety=false;
@@ -3445,7 +3774,7 @@ var editContent=$('trainingEditContent');
 if(!editContent)return;
 var selects=editContent.querySelectorAll('select.training-grade-select');
 selects.forEach(function(sel){
-var day=sel.dataset.day;
+var day=sel.dataset.slot||sel.dataset.day;   /* v18：优先 data-slot */
 var dim=sel.dataset.dim;
 var isFinal=sel.dataset.final==='true';
 if(isFinal){td.finalScores[dim]=sel.value;}
@@ -3627,7 +3956,8 @@ html+='<div class="card" style="margin-bottom:12px;cursor:pointer;transition:all
 html+='<div style="display:flex;align-items:center;gap:12px"><span style="font-size:32px">'+cat.icon+'</span><div><div style="font-weight:600;font-size:15px">'+cat.name+(isCurrent?' ✓':'')+'</div><div style="font-size:12px;color:var(--text-secondary)">'+cat.desc+'</div></div></div>';
 html+='</div>';
 });
-html+='<div style="text-align:center;margin-top:16px"><button class="btn btn-outline" onclick="skipCourseSelect()">暂不切换</button></div>';
+if(savedCourse){html+='<div style="text-align:center;margin-top:16px"><button class="btn btn-outline" onclick="skipCourseSelect()">暂不切换</button></div>'}
+else{html+='<div style="text-align:center;margin-top:16px;font-size:13px;color:#e37400;background:#fff8e1;border:1px solid #ffe0b2;padding:10px 12px;border-radius:8px;line-height:1.6">⚠️ 第一次使用请先选择专业和课程<br><span style="color:var(--text-secondary);font-size:12px">选好后，老师才能在你的班级名单里看到你</span></div>'}
 $('courseSelectList').innerHTML=html;
 $('courseSelectModal').style.display='flex';
 }
@@ -3689,6 +4019,11 @@ cloudSync();updateMsgBadge();
 }
 
 function skipCourseSelect(){
+/* v19.8：首次登录必须选课 —— 未选课的学生不在任何普通教师的名单里 */
+if(!getStudentCourse(currentUser.id)){
+showToast('请先选择你的专业和课程，选好后老师才能看到你的成绩','error');
+return;
+}
 $('courseSelectModal').style.display='none';
 switchPage('home');
 showToast('欢迎 '+currentUser.name,'success');
@@ -3896,7 +4231,7 @@ showToast('试卷生成成功！共 '+finalQ.length+' 题','success')
 }
 
 function startQuiz(cid){
-if(currentUser&&currentUser.isAdmin){showToast('管理员账户无法答题','error');return}
+if(currentUser&&currentUser.isAdmin){showToast('教师账户无法答题','error');return}
 var ch=chapters.find(function(c){return c.id===cid});if(!ch){showToast('章节不存在','error');return}
 var sq=shuffle(ch.questions); /* t11.0：Fisher-Yates 洗牌，替代 sort+Math.random */
 var maxQ=isSafetyChapter(ch.id)?ch.questions.length:Math.min(CONFIG.QUIZ_PER_CHAPTER,ch.questions.length); /* t11.0：统一配置 */
@@ -4117,18 +4452,18 @@ updateMsgBadge();
 
 var adminAllRecords=[],adminStudentMap={};
 
-function showAdminLogin(){$('studentLoginForm').style.display='none';$('adminLoginForm').style.display='block'}
-function showStudentLogin(){$('studentLoginForm').style.display='block';$('adminLoginForm').style.display='none';$('adminUser').value='';$('adminPass').value=''}
+function showAdminLogin(){var el=$('adminUser');if(el)el.focus()}
+function showStudentLogin(){var el=$('studentName');if(el)el.focus()}
 
 function adminLogin(){
 var u=$('adminUser').value.trim(),p=$('adminPass').value;
-if(!u){showToast('请输入管理员账号','error');return}
+if(!u){showToast('请输入教师账号','error');return}
 var loginBtn=null;var _ap=$('adminPass');if(_ap&&_ap.parentElement)loginBtn=_ap.parentElement.querySelector('.btn');
 if(loginBtn){loginBtn.disabled=true;loginBtn.textContent='正在验证...'}
 var localAdmins=loadAdmins();
 if(!localAdmins[u]){
-if(loginBtn){loginBtn.disabled=false;loginBtn.textContent='进入管理后台'}
-showToast('管理员账号或密码错误','error');return;
+if(loginBtn){loginBtn.disabled=false;loginBtn.textContent='进入教师后台'}
+showToast('教师账号或密码错误','error');return;
 }
 /* t11.0：密码哈希比对；兼容旧版明文数据，成功后自动迁移为哈希 */
 var stored=localAdmins[u].password;
@@ -4140,8 +4475,8 @@ if(valid){localAdmins[u].password=hashAdminPwd(p);saveAdmins(localAdmins);}
 valid=(stored===hashAdminPwd(p));
 }
 if(!valid){
-if(loginBtn){loginBtn.disabled=false;loginBtn.textContent='进入管理后台'}
-showToast('管理员账号或密码错误','error');return;
+if(loginBtn){loginBtn.disabled=false;loginBtn.textContent='进入教师后台'}
+showToast('教师账号或密码错误','error');return;
 }
 var adminInfo=localAdmins[u];
 var isSuper=adminInfo.role==='super';
@@ -4151,7 +4486,7 @@ $('headerUser').style.display='flex';$('userNameHeader').textContent=adminInfo.n
 $('userAvatarHeader').textContent='👨';
 $('studentChangePwdBtn').style.display='none';
 $('navTabs').style.display='flex';
-if(loginBtn){loginBtn.disabled=false;loginBtn.textContent='进入管理后台'}
+if(loginBtn){loginBtn.disabled=false;loginBtn.textContent='进入教师后台'}
 if(isSuper){
 showSuperAdminCourseSelect();
 }else{
@@ -4180,7 +4515,7 @@ modal.style.cssText='background:#fff;border-radius:16px;padding:28px 32px;max-wi
 var courseOptions=courses.map(function(c){return '<option value="'+c.id+'">'+c.catIcon+' '+c.catName+'类 · '+c.name+' ('+c.adminName+')</option>'}).join('');
 modal.innerHTML='<div style="text-align:center;margin-bottom:20px">'+
 '<div style="font-size:40px;margin-bottom:8px">👨‍💼</div>'+
-'<h3 style="margin:0 0 6px;color:#1a237e;font-size:20px">超级管理员登录</h3>'+
+'<h3 style="margin:0 0 6px;color:#1a237e;font-size:20px">超级教师登录</h3>'+
 '<p style="color:#666;font-size:14px;margin:0">请选择要管理的课程和班级</p>'+
 '</div>'+
 '<div style="margin-bottom:16px">'+
@@ -4298,7 +4633,7 @@ document.querySelectorAll('.page').forEach(function(p){p.classList.remove('activ
 var adminPage=$('pageAdmin');
 if(adminPage)adminPage.classList.add('active');
 var cs=$('cloudStatus');if(cs){cs.textContent='🔄';cs.title='正在加载数据...'}
-showToast('超级管理员登录成功，当前课程：'+catInfo.icon+' '+catInfo.name+'类 · '+courseName,'success');
+showToast('超级教师登录成功，当前课程：'+catInfo.icon+' '+catInfo.name+'类 · '+courseName,'success');
 loadAdminData();
 }
 
@@ -4310,7 +4645,7 @@ document.querySelectorAll('.page').forEach(function(p){p.classList.remove('activ
 var adminPage=$('pageAdmin');
 if(adminPage)adminPage.classList.add('active');
 var cs=$('cloudStatus');if(cs){cs.textContent='🔄';cs.title='正在加载数据...'}
-showToast('管理员登录成功','success');
+showToast('教师登录成功','success');
 loadAdminData();
 }
 
@@ -4544,8 +4879,11 @@ var aid=cr.data.adminId;
 if(aid&&aid!==currentAdminId)return;
 var batch=cr.data.allData;
 Object.keys(batch).forEach(function(sid){
+/* v18：合并前先归一化，否则「周一」和「k1」会变成两个槽位、分数被劈成两半 */
+try{normalizeStageKeys(batch[sid])}catch(e1){}
 if(!allTraining[sid]){allTraining[sid]=batch[sid]}
 else{
+try{normalizeStageKeys(allTraining[sid])}catch(e2){}
 if(!allTraining[sid].dailyScores)allTraining[sid].dailyScores={};
 if(!allTraining[sid].finalScores)allTraining[sid].finalScores={};
 Object.assign(allTraining[sid].dailyScores,batch[sid].dailyScores||{});
@@ -4643,9 +4981,15 @@ if(t>latestEvalConfigTime){latestEvalConfig=cr.data;latestEvalConfigTime=t}
 });
 if(latestEvalConfig){
 var localEvalCfg=getEvalConfig();
-WEEKDAYS.forEach(function(day){
-if(latestEvalConfig[day]){localEvalCfg[day]=latestEvalConfig[day]}
-else{delete localEvalCfg[day]}
+/* v18：键并集（同 applyEvalConfig），否则项目制槽位拿不到配置 */
+var _ek2={};
+try{stageIds().forEach(function(k){_ek2[k]=1})}catch(e6){}
+Object.keys(LEGACY_ALIAS).forEach(function(k){_ek2[k]=1});
+Object.keys(latestEvalConfig).forEach(function(k){if(k!=='adminId')_ek2[k]=1});
+Object.keys(localEvalCfg).forEach(function(k){if(k!=='adminId')_ek2[k]=1});
+Object.keys(_ek2).forEach(function(k){
+if(latestEvalConfig[k]){localEvalCfg[k]=latestEvalConfig[k]}
+else{delete localEvalCfg[k]}
 });
 safeSetItem('plc_eval_config',JSON.stringify(localEvalCfg));
 }
@@ -4970,6 +5314,7 @@ sel.value=currentVal;
 });
 updateCourseFilters();
 updateStudentClassDatalist(); /* t11.0-AI：数据到达后同步学生端的班级候选 */
+try{refreshTrainingExportClassOptions()}catch(e){} /* v17：数据到达后同步实训「导出班级」候选 */
 }
 /* 顶部统计与班级筛选口径保持一致（选「全部班级」时统计全部） */
 function getActiveClassFilter(){
@@ -5095,19 +5440,32 @@ if(trainingClassFilter&&trainingClassFilter.value!==classVal)trainingClassFilter
 }
 }
 
+/* v19.5：后台标签跳转 */
+function syncAdminTabsTop(){var hd=document.querySelector('.header'),t=document.getElementById('adminTabs');if(hd&&t)t.style.top=hd.offsetHeight+'px'}
+function jumpAdminSection(id,btn){
+var el=document.getElementById(id);if(!el)return;
+var hd=document.querySelector('.header'),h=hd?hd.offsetHeight:0;
+var t=document.getElementById('adminTabs');if(t)t.style.top=h+'px';
+var y=el.getBoundingClientRect().top+window.pageYOffset-h-52;
+window.scrollTo({top:y<0?0:y,behavior:'smooth'});
+var all=document.querySelectorAll('.admin-tab');for(var i=0;i<all.length;i++)all[i].classList.remove('active');
+if(btn)btn.classList.add('active');
+}
+window.addEventListener('resize',syncAdminTabsTop);
+
 function renderAdminDashboard(){
 var courseFilterAdmin=getCourseFilterAdminId();
 var students=Object.values(adminStudentMap);
 if(courseFilterAdmin){
 students=students.filter(function(st){
 var studentCourse=getStudentCourse(st.id||st.name);
-if(!studentCourse)return true;
+if(!studentCourse)return false;   /* v19.6：未选课不属于任何课程 */
 return studentCourse===courseFilterAdmin;
 });
 }else if(!currentUser.isSuperAdmin){
 students=students.filter(function(st){
 var studentCourse=getStudentCourse(st.id||st.name);
-if(!studentCourse)return true;
+if(!studentCourse)return false;   /* v19.6：未选课不属于任何课程 */
 return studentCourse===currentUser.id;
 });
 }
@@ -5133,6 +5491,7 @@ renderAdminStudents();
 renderAdminAllRecords();
 renderAdminAccounts();
 renderDimConfig();
+renderStageConfig();   /* v18：考核阶段配置面板 */
 renderAdminManage();
 renderTrainingTable()
 }
@@ -5150,14 +5509,14 @@ if(classFilter)students=students.filter(function(st){return classMatch(st.cls,cl
 if(courseFilterAdmin){
 students=students.filter(function(st){
 var studentCourse=getStudentCourse(st.id||st.name);
-if(!studentCourse)return true;
+if(!studentCourse)return false;   /* v19.6：未选课不属于任何课程 */
 return studentCourse===courseFilterAdmin;
 });
 }
 if(!currentUser.isSuperAdmin&&!courseFilterAdmin){
 students=students.filter(function(st){
 var studentCourse=getStudentCourse(st.id||st.name);
-if(!studentCourse)return true;
+if(!studentCourse)return false;   /* v19.6：未选课不属于任何课程 */
 return studentCourse===currentUser.id;
 });
 }
@@ -5282,13 +5641,13 @@ var courseFilterAdmin=getCourseFilterAdminId();
 if(courseFilterAdmin){
 registeredNames=registeredNames.filter(function(name){
 var studentCourse=getStudentCourse(name);
-if(!studentCourse)return true;
+if(!studentCourse)return false;   /* v19.6：未选课不属于任何课程 */
 return studentCourse===courseFilterAdmin;
 });
 }else if(!currentUser.isSuperAdmin){
 registeredNames=registeredNames.filter(function(name){
 var studentCourse=getStudentCourse(name);
-if(!studentCourse)return true;
+if(!studentCourse)return false;   /* v19.6：未选课不属于任何课程 */
 return studentCourse===currentUser.id;
 });
 }
@@ -5345,6 +5704,222 @@ safeSetItem('plc_user_pins',JSON.stringify(userPins));
 cloudWrite('user_pins',{pins:userPins,names:safeJsonParse(strg.getItem('plc_user_names'),[])},null,true);
 renderAdminAccounts();
 showToast('已将 '+name+' 的密码重置为0000','success');
+}
+
+/* ============================================================
+ * v18 考核阶段配置面板
+ * ------------------------------------------------------------
+ * 每行：序号 + 名称输入框 + ⬆⬇ + [停用/恢复]
+ * 校验：至少 1 个启用、最多 10 个、名称不能空、启用项名称不能重复
+ * 保存走 saveAdmins()（已有云端同步链路）
+ * ============================================================ */
+var _stageDraft=null;
+function stageConfigAdminId(){
+var aid='';
+try{aid=(typeof getCourseFilterAdminId==='function'&&getCourseFilterAdminId())||''}catch(e){}
+if(!aid)aid=(currentUser&&currentUser.id)||'';
+return aid;
+}
+function getStageDraft(){
+if(!_stageDraft){
+_stageDraft=getStages(stageConfigAdminId(),true).map(function(s){
+return {id:s.id,name:s.name,active:s.active!==false};
+});
+}
+return _stageDraft;
+}
+/* 把输入框里的最新名称收回草稿（点排序/停用/添加前必须先收，否则刚改的名字会丢） */
+function collectStageDraft(){
+var draft=getStageDraft();
+draft.forEach(function(s,i){
+var inp=$('stageNameInput_'+i);
+/* v18：空值也要写回草稿（不能沿用旧名），否则「名称不能为空」的校验永远触发不到 */
+if(inp){s.name=String(inp.value||'').replace(/\s+/g,' ').trim()}
+});
+return draft;
+}
+/* ============================================================
+ * v19 记录方式（recordMode）：'week' | 'project'，缺省视为 'week'
+ * ------------------------------------------------------------
+ * 它只是「阶段命名预设」：按周=周一~周五，按项目=项目一..N。
+ * 切换只改 admins_config 里的阶段名称，绝不触碰任何成绩数据。
+ * 读取必须统一走 getRecordMode()，不要直接读字段。
+ * ============================================================ */
+var RECORD_MODE_WEEK='week';
+var RECORD_MODE_PROJECT='project';
+var CN_ORDINAL=['一','二','三','四','五','六','七','八','九','十'];
+function getRecordMode(adminId){
+var cfg=null;
+try{cfg=getAdminCourseConfig(adminId)}catch(e){cfg=null}
+var m=cfg&&cfg.recordMode;
+return m===RECORD_MODE_PROJECT?RECORD_MODE_PROJECT:RECORD_MODE_WEEK;
+}
+/* 名称是否属于「默认形态」：周一..周五 / 项目一..N / addStage 自动生成的「阶段N」。
+   只要出现一个不在这些形态里的名字，就算自定义名称（切换前要弹确认）。 */
+function hasCustomStageNames(list){
+for(var i=0;i<list.length;i++){
+var nm=String(list[i].name||'').trim();
+if(!nm)continue;
+if(WEEKDAYS.indexOf(nm)>=0)continue;
+if(/^项目[一二三四五六七八九十]+$/.test(nm))continue;
+if(/^阶段\d+$/.test(nm))continue;
+return true;
+}
+return false;
+}
+function projStageName(idx){return '项目'+(CN_ORDINAL[idx]||String(idx+1))}
+/* 按周：k1..k5 = 周一..周五 且启用；其余（k6 及以后）停用但保留 */
+function buildWeekStages(list){
+var out=[];
+for(var i=0;i<WEEKDAYS.length;i++){out.push({id:'k'+(i+1),name:WEEKDAYS[i],active:true})}
+var used={};
+out.forEach(function(s){used[s.id]=true});
+list.forEach(function(s){
+if(used[s.id])return;
+used[s.id]=true;
+out.push({id:s.id,name:s.name,active:false});
+});
+return out;
+}
+/* 按项目：启用数量不变，按顺序改名为 项目一..项目N；停用项原样保留 */
+function buildProjectStages(list){
+var k=0;
+return list.map(function(s){
+if(s.active===false)return {id:s.id,name:s.name,active:false};
+var nm=projStageName(k);k++;
+return {id:s.id,name:nm,active:true};
+});
+}
+function setRecordMode(mode){
+if(!currentUser||!currentUser.isAdmin)return;
+if(mode!==RECORD_MODE_PROJECT)mode=RECORD_MODE_WEEK;
+var aid=stageConfigAdminId();
+var cur=getRecordMode(aid);
+if(mode===cur){renderStageConfig();return}
+var list=getStages(aid,true).map(function(s){
+return {id:s.id,name:s.name,active:s.active!==false};
+});
+if(hasCustomStageNames(list)){
+if(!confirm('切换将覆盖当前阶段名称（如「开营」「电机正反转」）。成绩数据不受影响，是否继续？')){
+renderStageConfig();   /* 单选回退到 getRecordMode 的真实值 */
+return;
+}
+}
+var next=(mode===RECORD_MODE_WEEK)?buildWeekStages(list):buildProjectStages(list);
+var admins=loadAdmins();
+if(!admins[aid])admins[aid]={};
+admins[aid].stages=next.map(function(s){return {id:s.id,name:s.name,active:s.active!==false}});
+admins[aid].recordMode=mode;
+saveAdmins(admins);   /* 内含 clearStageCache()，成绩数据一行未动 */
+_stageDraft=null;
+renderStageConfig();
+try{renderTrainingTable()}catch(e1){}
+try{renderEvalControlPanel()}catch(e2){}
+try{renderDimConfig()}catch(e3){}
+var activeCount=next.filter(function(s){return s.active!==false}).length;
+showToast('已切换为「'+(mode===RECORD_MODE_WEEK?'按周':'按项目')+'」：'+activeCount+' 个阶段，成绩数据未改动','success');
+}
+function renderStageConfig(){
+if(!currentUser||!currentUser.isAdmin)return;
+var box=$('stageConfigList');if(!box)return;
+var draft=getStageDraft();
+var activeCount=draft.filter(function(s){return s.active!==false}).length;
+var mode=getRecordMode(stageConfigAdminId());
+var html='<div style="margin-bottom:10px;padding:10px 12px;background:#f5f7fb;border-radius:8px">';
+html+='<div style="font-weight:600;font-size:13px;margin-bottom:6px;color:#1565c0">🗂 记录方式</div>';
+html+='<label style="display:block;font-size:13px;margin-bottom:4px;cursor:pointer"><input type="radio" name="recordMode" value="week"'+(mode===RECORD_MODE_WEEK?' checked':'')+' onchange="setRecordMode(\'week\')"> <b>按周</b> —— 周一 ~ 周五（默认，大多数科目）</label>';
+html+='<label style="display:block;font-size:13px;cursor:pointer"><input type="radio" name="recordMode" value="project"'+(mode===RECORD_MODE_PROJECT?' checked':'')+' onchange="setRecordMode(\'project\')"> <b>按项目</b> —— 项目一 / 二 / 三…（名称可自己改）</label>';
+html+='</div>';
+html+='<div style="margin:8px 0 6px;font-size:12px;color:var(--text-secondary)">── 阶段明细（两种方式都能单独改名/增减）──</div>';
+html+='<table class="history-table" style="font-size:13px"><thead><tr><th style="width:52px">序号</th><th>阶段名称</th><th style="width:96px">排序</th><th style="width:96px">状态</th></tr></thead><tbody>';
+draft.forEach(function(s,i){
+var on=s.active!==false;
+html+='<tr'+(on?'':' style="opacity:0.55"')+'>';
+html+='<td>'+(i+1)+'</td>';
+html+='<td><input type="text" id="stageNameInput_'+i+'" value="'+esc(s.name)+'" maxlength="20" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px" placeholder="例如：项目一 / 任务A / 第一天"></td>';
+html+='<td><button class="btn btn-outline btn-sm" onclick="moveStage('+i+',-1)"'+(i===0?' disabled':'')+'>⬆️</button> <button class="btn btn-outline btn-sm" onclick="moveStage('+i+',1)"'+(i===draft.length-1?' disabled':'')+'>⬇️</button></td>';
+html+='<td><button class="btn btn-outline btn-sm" style="color:'+(on?'#e37400':'#2e7d32')+'" onclick="toggleStage('+i+')">'+(on?'停用':'恢复')+'</button></td>';
+html+='</tr>';
+});
+html+='</tbody></table>';
+if(!draft.length)html='<div style="color:var(--text-secondary);padding:8px 0">暂无阶段，请点击「添加阶段」</div>'+html;
+box.innerHTML=html;
+var hint=$('stageConfigHint');
+if(hint){
+hint.innerHTML='ⓘ 当前：<b>'+activeCount+'</b> 个阶段 · 每个阶段按「过程性评价维度」各评一次（最多 '+STAGE_MAX+' 个，至少 1 个启用）';
+}
+}
+function addStage(){
+if(!currentUser||!currentUser.isAdmin)return;
+var draft=collectStageDraft();
+if(draft.length>=STAGE_MAX){showToast('最多只能设置 '+STAGE_MAX+' 个阶段','error');return}
+var used={};
+draft.forEach(function(s){used[s.id]=true});
+var newId='';
+for(var n=1;n<=STAGE_MAX;n++){if(!used['k'+n]){newId='k'+n;break}}
+if(!newId){showToast('阶段数量已达上限','error');return}
+draft.push({id:newId,name:'阶段'+draft.length+1,active:true});
+_stageDraft=draft;
+renderStageConfig();
+}
+function moveStage(i,dir){
+var draft=collectStageDraft();
+var j=i+dir;
+if(i<0||i>=draft.length||j<0||j>=draft.length)return;
+var tmp=draft[i];draft[i]=draft[j];draft[j]=tmp;
+_stageDraft=draft;
+renderStageConfig();
+}
+function toggleStage(i){
+var draft=collectStageDraft();
+if(i<0||i>=draft.length)return;
+var turningOff=draft[i].active!==false;
+if(turningOff){
+var stillOn=draft.filter(function(s,k){return k!==i&&s.active!==false}).length;
+if(stillOn<1){showToast('至少要保留 1 个启用的阶段','error');return}
+draft[i].active=false;
+}else{
+draft[i].active=true;
+}
+_stageDraft=draft;
+renderStageConfig();
+}
+function resetStages(){
+if(!currentUser||!currentUser.isAdmin)return;
+if(!confirm('恢复为默认「周一~周五」5 个阶段？已录入的分数不会删除，超出 5 个的阶段数据会保留但暂不参与计算。'))return;
+_stageDraft=defaultStages();
+renderStageConfig();
+showToast('已恢复为默认 5 个阶段，请点「💾 保存」生效','info');
+}
+function saveStages(){
+if(!currentUser||!currentUser.isAdmin)return;
+var draft=collectStageDraft();
+if(draft.length<1){showToast('至少要保留 1 个阶段','error');return}
+if(draft.length>STAGE_MAX){showToast('最多只能设置 '+STAGE_MAX+' 个阶段','error');return}
+var activeList=draft.filter(function(s){return s.active!==false});
+if(activeList.length<1){showToast('至少要保留 1 个启用的阶段','error');return}
+var nameSeen={},dup='';
+for(var i=0;i<draft.length;i++){
+var nm=String(draft[i].name||'').replace(/\s+/g,' ').trim();
+if(!nm){showToast('第 '+(i+1)+' 个阶段的名称不能为空','error');return}
+draft[i].name=nm;
+if(draft[i].active!==false){
+if(nameSeen[nm]){dup=nm;break}
+nameSeen[nm]=true;
+}
+}
+if(dup){showToast('启用中的阶段名称不能重复：「'+dup+'」','error');return}
+var aid=stageConfigAdminId();
+var admins=loadAdmins();
+if(!admins[aid])admins[aid]={};
+admins[aid].stages=draft.map(function(s){return {id:s.id,name:s.name,active:s.active!==false}});
+saveAdmins(admins);   /* 内含 clearStageCache() */
+_stageDraft=null;
+renderStageConfig();
+try{renderTrainingTable()}catch(e1){}
+try{renderEvalControlPanel()}catch(e2){}
+try{renderDimConfig()}catch(e3){}
+showToast('考核阶段已保存：'+activeList.length+' 个启用','success');
 }
 
 function renderDimConfig(){
@@ -5437,7 +6012,7 @@ el.style.color=(Math.round(sum)===100?'var(--success)':'var(--danger)');
 }
 
 function saveWeightConfig(){
-if(!currentUser||!currentUser.isAdmin){showToast('请先登录管理员账号','error');return}
+if(!currentUser||!currentUser.isAdmin){showToast('请先登录教师账号','error');return}
 var me=(loadAdmins()||{})[currentUser.id]||{};
 var hasSafety=courseHasSafetyExam(me.category);
 /* v16.2：本科目不设安全准入时，该项恒为 0，界面也不提供输入 */
@@ -5613,6 +6188,7 @@ var admins=loadAdmins();
 var dim=admins[currentUser.id].processDims[index];
 $('dimEditTitle').textContent='✏️ 编辑过程性指标';
 var html='<div class="form-group"><label>指标名称</label><input type="text" id="editProcessDimName" value="'+dim+'" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px"></div>';
+html+='<div style="font-size:12px;color:#2e7d32;background:#e8f5e9;padding:8px 12px;border-radius:8px;margin-top:4px">ⓘ 改名会自动迁移历史成绩，不会丢失</div>';
 html+='<input type="hidden" id="editProcessDimIndex" value="'+index+'">';
 html+='<div style="display:flex;gap:12px;justify-content:flex-end;margin-top:16px"><button class="btn btn-outline" onclick="closeDimEditModal()">取消</button><button class="btn btn-primary" onclick="saveEditProcessDim()">保存</button></div>';
 $('dimEditContent').innerHTML=html;
@@ -5624,6 +6200,7 @@ var admins=loadAdmins();
 var dim=admins[currentUser.id].finalDims[index];
 $('dimEditTitle').textContent='✏️ 编辑实训考核指标';
 var html='<div class="form-group"><label>指标名称</label><input type="text" id="editFinalDimName" value="'+dim+'" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px"></div>';
+html+='<div style="font-size:12px;color:#2e7d32;background:#e8f5e9;padding:8px 12px;border-radius:8px;margin-top:4px">ⓘ 改名会自动迁移历史成绩，不会丢失</div>';
 html+='<input type="hidden" id="editFinalDimIndex" value="'+index+'">';
 html+='<div style="display:flex;gap:12px;justify-content:flex-end;margin-top:16px"><button class="btn btn-outline" onclick="closeDimEditModal()">取消</button><button class="btn btn-primary" onclick="saveEditFinalDim()">保存</button></div>';
 $('dimEditContent').innerHTML=html;
@@ -5658,16 +6235,104 @@ renderDimConfig();
 showToast('实训考核指标添加成功','success');
 }
 
+/* ============================================================
+ * v19 指标改名迁移
+ * ------------------------------------------------------------
+ * 维度名本身就是数据键（dailyScores[slot][维度] / finalScores[维度] /
+ * finalDimWeights[维度]），只改配置名会让历史成绩"消失"（按 0 分算）。
+ * 这里在改名时把旧键下的成绩搬到新键，避免老师一改名全班成绩归零。
+ * 规则：目标键为空（undefined / ''）才写入，非空保留原值；写完删旧键。
+ * adminsOpt：调用方可传入自己已 loadAdmins() 的同一对象，避免二次写覆盖。
+ * ============================================================ */
+function migrateDimName(adminId, scope, oldName, newName, adminsOpt){
+if(!adminId||!oldName||!newName||oldName===newName)return 0;
+var all=getTrainingData(adminId);
+var slots=null;
+if(scope!=='final'){
+/* 阶段槽 + 旧中文天名（防止个别学生数据还没归一化时漏搬） */
+slots=stageIds(adminId).slice();
+for(var lab in LEGACY_ALIAS){
+if(!Object.prototype.hasOwnProperty.call(LEGACY_ALIAS,lab))continue;
+if(slots.indexOf(lab)<0)slots.push(lab);
+}
+}
+var moved=0;
+Object.keys(all).forEach(function(sid){
+var td=all[sid];
+if(!td)return;
+if(scope==='final'){
+var fs=td.finalScores;
+if(!fs||!Object.prototype.hasOwnProperty.call(fs,oldName))return;
+var fv=fs[oldName];
+var hasTarget=(fs[newName]!==undefined&&fs[newName]!==null&&fs[newName]!=='');
+/* 只有真的把值写进新键才算「迁移」；目标已有非空值时保留原值、源值丢弃，不计数 */
+if(!hasTarget){fs[newName]=fv;if(fv!==undefined&&fv!==null&&fv!=='')moved++;}
+delete fs[oldName];
+}else{
+var ds=td.dailyScores;
+if(!ds)return;
+slots.forEach(function(slot){
+var b=ds[slot];
+if(!b||!Object.prototype.hasOwnProperty.call(b,oldName))return;
+var v=b[oldName];
+var tgt=(b[newName]!==undefined&&b[newName]!==null&&b[newName]!=='');
+if(!tgt){b[newName]=v;if(v!==undefined&&v!==null&&v!=='')moved++;}
+delete b[oldName];
+});
+}
+});
+saveTrainingData(all,adminId);
+/* 实训考核维度：finalDimWeights 的键名也要跟着改，否则权重丢失回落等权 */
+if(scope==='final'){
+try{
+var admins=adminsOpt||loadAdmins();
+var cfg=admins[adminId];
+if(cfg&&cfg.finalDimWeights&&Object.prototype.hasOwnProperty.call(cfg.finalDimWeights,oldName)){
+var w=cfg.finalDimWeights[oldName];
+if(cfg.finalDimWeights[newName]===undefined)cfg.finalDimWeights[newName]=w;
+delete cfg.finalDimWeights[oldName];
+if(!adminsOpt)saveAdmins(admins);
+}
+}catch(e){console.error('迁移 finalDimWeights 失败:',e)}
+}
+return moved;
+}
+/* 该科目是否已存在同名指标（排除自身索引） */
+function dimNameExists(dims,index,name){
+for(var i=0;i<(dims||[]).length;i++){
+if(i===index)continue;
+if(String(dims[i]).trim()===String(name).trim())return true;
+}
+return false;
+}
+
 function saveEditProcessDim(){
 var index=parseInt($('editProcessDimIndex').value);
 var name=$('editProcessDimName').value.trim();
 if(!name){showToast('请输入指标名称','error');return}
 var admins=loadAdmins();
+var dims=admins[currentUser.id].processDims||DEFAULT_PROCESS_DIMS.slice();
+var oldName=dims[index];
+if(name===oldName){
+closeDimEditModal();renderDimConfig();
+showToast('过程性指标已更新','success');
+return;
+}
+/* 重名拒绝：重名会导致同一阶段出现两个同名列，且数据无法区分归属 */
+if(dimNameExists(dims,index,name)){
+showToast('已存在同名指标，请换一个名称','error');
+return;
+}
+/* 先迁移历史成绩，再改配置名 */
+var moved=migrateDimName(currentUser.id,'process',oldName,name);
+admins=loadAdmins();
 admins[currentUser.id].processDims[index]=name;
 saveAdmins(admins);
 closeDimEditModal();
 renderDimConfig();
-showToast('过程性指标已更新','success');
+try{renderTrainingTable()}catch(e){}
+if(moved>0)showToast('已改为「'+name+'」，同步迁移 '+moved+' 条成绩','success');
+else showToast('已改为「'+name+'」（该指标暂无历史成绩）','success');
 }
 
 function saveEditFinalDim(){
@@ -5675,18 +6340,34 @@ var index=parseInt($('editFinalDimIndex').value);
 var name=$('editFinalDimName').value.trim();
 if(!name){showToast('请输入指标名称','error');return}
 var admins=loadAdmins();
+var dims=admins[currentUser.id].finalDims||DEFAULT_FINAL_DIMS.slice();
+var oldName=dims[index];
+if(name===oldName){
+closeDimEditModal();renderDimConfig();
+showToast('实训考核指标已更新','success');
+return;
+}
+if(dimNameExists(dims,index,name)){
+showToast('已存在同名指标，请换一个名称','error');
+return;
+}
+/* 传入同一个 admins 对象：finalDimWeights 的键名迁移与 dims 改名在同一次 saveAdmins 落盘，
+   否则后写的旧 admins 会把权重迁移覆盖掉 */
+var moved=migrateDimName(currentUser.id,'final',oldName,name,admins);
 admins[currentUser.id].finalDims[index]=name;
 saveAdmins(admins);
 closeDimEditModal();
 renderDimConfig();
-showToast('实训考核指标已更新','success');
+try{renderTrainingTable()}catch(e){}
+if(moved>0)showToast('已改为「'+name+'」，同步迁移 '+moved+' 条成绩','success');
+else showToast('已改为「'+name+'」（该指标暂无历史成绩）','success');
 }
 
 function deleteProcessDim(index){
 var admins=loadAdmins();
 if(admins[currentUser.id].processDims.length<=1){showToast('至少保留一个过程性指标','error');return}
 var dim=admins[currentUser.id].processDims[index];
-if(!confirm('确定要删除过程性指标「'+dim+'」吗？'))return;
+if(!confirm('确定要删除「'+dim+'」吗？\n\n该指标的已录成绩会保留但不再显示，也不会参与计算。重新添加同名指标即可恢复。'))return;
 admins[currentUser.id].processDims.splice(index,1);
 saveAdmins(admins);
 renderDimConfig();
@@ -5697,7 +6378,7 @@ function deleteFinalDim(index){
 var admins=loadAdmins();
 if(admins[currentUser.id].finalDims.length<=1){showToast('至少保留一个实训考核指标','error');return}
 var dim=admins[currentUser.id].finalDims[index];
-if(!confirm('确定要删除实训考核指标「'+dim+'」吗？'))return;
+if(!confirm('确定要删除「'+dim+'」吗？\n\n该指标的已录成绩会保留但不再显示，也不会参与计算。重新添加同名指标即可恢复。'))return;
 admins[currentUser.id].finalDims.splice(index,1);
 saveAdmins(admins);
 renderDimConfig();
@@ -5741,7 +6422,7 @@ showToast('已恢复默认评价指标','success');
 }
 
 function syncAdminConfigToCloud(){
-if(!currentUser||!currentUser.isAdmin){showToast('请先登录管理员账号','error');return}
+if(!currentUser||!currentUser.isAdmin){showToast('请先登录教师账号','error');return}
 var admins=loadAdmins();
 cloudWrite('admins_config',{admins:admins,syncedBy:currentUser.id,syncedAt:new Date().toISOString()},function(ok){
 if(ok){showToast('配置已同步到云端','success')}
@@ -6040,9 +6721,15 @@ var c=window._restoreCache;if(!c)return;
 delete window._restoreCache;
 if(c.latestEvalConfig){
 var localEvalCfg=safeJsonParse(strg.getItem('plc_eval_config'),{});
-WEEKDAYS.forEach(function(day){
-if(c.latestEvalConfig[day]){localEvalCfg[day]=c.latestEvalConfig[day]}
-else{delete localEvalCfg[day]}
+/* v18：键并集，项目制槽位也能拿到云端配置 */
+var _ek={};
+try{stageIds().forEach(function(k){_ek[k]=1})}catch(e5){}
+Object.keys(LEGACY_ALIAS).forEach(function(k){_ek[k]=1});
+Object.keys(c.latestEvalConfig).forEach(function(k){if(k!=='adminId')_ek[k]=1});
+Object.keys(localEvalCfg).forEach(function(k){if(k!=='adminId')_ek[k]=1});
+Object.keys(_ek).forEach(function(k){
+if(c.latestEvalConfig[k]){localEvalCfg[k]=c.latestEvalConfig[k]}
+else{delete localEvalCfg[k]}
 });
 safeSetItem('plc_eval_config',JSON.stringify(localEvalCfg));
 }
@@ -6073,6 +6760,11 @@ if(currentUser&&!currentUser.isAdmin){
 var myAdminId=getStudentCourse(currentUser.id);
 if(myAdminId&&aid!==myAdminId){return}
 }
+/* v18：写回 localStorage 前归一化旧天名键 */
+try{
+var _rt=c.latestTraining[aid];
+Object.keys(_rt||{}).forEach(function(_sid){try{normalizeStageKeys(_rt[_sid])}catch(e9){}});
+}catch(e8){}
 var tJson=JSON.stringify(c.latestTraining[aid]);
 if(tJson.length>2*1024*1024){
 var td=c.latestTraining[aid];
@@ -6144,7 +6836,7 @@ safeSetItem(es.key,JSON.stringify(es.scores));
 }
 
 function syncAdminsToCloud(){
-if(!currentUser||!currentUser.isAdmin){showToast('请先登录管理员账号','error');return}
+if(!currentUser||!currentUser.isAdmin){showToast('请先登录教师账号','error');return}
 var admins=loadAdmins();
 cloudWrite('admins_config',{admins:admins,syncedBy:currentUser.id,syncedAt:new Date().toISOString()},function(ok){
 if(ok){showToast('管理员配置已同步到云端','success')}
@@ -6486,15 +7178,18 @@ function aiStudentFeature(st, dimOverride){
   var D = dimOverride || aiDims();
   var pd = D.processDims, fd = D.finalDims;
   var td = st.data || {}, ds = td.dailyScores || {}, fs = td.finalScores || {};
+  /* v18：AI 特征也按阶段遍历，五天制下与改造前完全一致 */
+  var aiStageIds = stageIds(aiAdminId());
+  var aiStageNames = stageNames(aiAdminId());
 
-  var dailyAvgs = WEEKDAYS.map(function(day){ return calcDailyAvg(ds[day]||{}, pd); });
+  var dailyAvgs = aiStageIds.map(function(slot){ return calcDailyAvg(ds[slot]||{}, pd); });
   var theoryAvg=aiNum(st.theoryAvg), processAvg=aiNum(st.processAvg), finalAvg=aiNum(st.finalAvg), composite=aiNum(st.composite);
 
   var dims={}, dTotal=0, aTotal=0, gradeTotal=0;
   pd.forEach(function(dim){
     var vals=[], grades=[], dCnt=0, aCnt=0;
-    WEEKDAYS.forEach(function(day){
-      var g=(ds[day]||{})[dim]||'';
+    aiStageIds.forEach(function(slot){
+      var g=(ds[slot]||{})[dim]||'';
       if(g){ grades.push(g); vals.push(aiGradeScore(g)); }
       if(g==='D') dCnt++;
       if(g==='A') aCnt++;
@@ -6541,8 +7236,8 @@ function aiStudentFeature(st, dimOverride){
     if(dims[dim].isEvalDim) return;
     gradedVals.push(dims[dim].avg);
   });
-  var gradedDaily = WEEKDAYS.map(function(day){
-    var dd=ds[day]||{}, vals=[];
+  var gradedDaily = aiStageIds.map(function(slot){
+    var dd=ds[slot]||{}, vals=[];
     pd.forEach(function(dim){
       if(dims[dim].isEvalDim) return;
       if(dd[dim]) vals.push(aiGradeScore(dd[dim]));
@@ -6570,6 +7265,7 @@ function aiEvalIndex(){
   var idx={};
   function put(sid,day,type,scores,ts){
     if(!sid||!day||!type||!scores) return;
+    day = stageIdOf(day);   /* v18：云端旧记录 day='周一' 归一到 k1，与阶段键对齐 */
     var k=sid+'|'+day+'|'+type, cur=idx[k];
     if(!cur || String(ts||'')>=String(cur.ts||'')) idx[k]={ scores:scores, ts:String(ts||'') };
   }
@@ -6600,7 +7296,8 @@ function aiEvalIndex(){
   return idx;
 }
 function aiGetEval(sid,day,type){
-  var i=aiEvalIndex(), r=i[sid+'|'+day+'|'+type];
+  var i=aiEvalIndex();
+  var r=i[sid+'|'+stageIdOf(day)+'|'+type];
   return r ? r.scores : null;
 }
 
@@ -6611,7 +7308,8 @@ function aiTriangulation(studentId, td){
   var pd = aiDims().processDims.filter(function(d){ return d!=='自评' && d!=='互评'; });
   var ds = (td && td.dailyScores) || null;
 
-  WEEKDAYS.forEach(function(day){
+  var _triSlotIds=stageIds(aiAdminId());
+  _triSlotIds.forEach(function(day){
     var s = aiGetEval(studentId, day, 'self');
     var p = aiGetEval(studentId, day, 'peer');
     if(s){
@@ -7367,7 +8065,7 @@ function aiRenderStudent(){
   var c=$('aiContent');
   if(!AI_UI.tab) AI_UI.tab='growth';
   var h='<div class="ai-hero stu"><h2>AI 成长导师</h2>'
-    +'<p>它读的是你自己的真实数据：安全考核、五天过程评价、实训考核、答题记录。不编故事，只讲事实。</p></div>';
+    +'<p>它读的是你自己的真实数据：安全考核、各阶段过程评价、实训考核、答题记录。不编故事，只讲事实。</p></div>';
   h+='<div class="ai-tabs">'+aiTabBtn('growth','我的成长建议')+aiTabBtn('wrong','错题教练')+aiTabBtn('ask','问一问 AI 助教')+'</div><div id="aiBody"></div>';
   c.innerHTML=h;
   aiRenderBody();
