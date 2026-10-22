@@ -351,6 +351,8 @@ input,select,textarea{font-size:16px!important}
 <div class="stats-grid fade-in" id="adminStats"></div>
 <div style="margin-bottom:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
 <button class="btn btn-primary btn-sm" onclick="refreshAdminData()" id="adminRefreshBtn">🔄 刷新数据</button>
+<button class="btn btn-outline btn-sm" onclick="showAdminScopeModal()" id="adminScopeBtn" title="切换学校/班级定位（科目随账号固定）">🔄 切换定位</button>
+<span id="adminScopeLabel" style="font-size:12px;color:var(--text-secondary)"></span>
 <span id="adminLastRefresh" style="font-size:12px;color:var(--text-secondary)"></span>
 </div>
 <div class="admin-tabs" id="adminTabs">
@@ -2147,11 +2149,11 @@ var stageIdList=stageList.map(function(s){return s.id});
 var students=[];
 var processedNames={};
 if(currentUser&&currentUser.isAdmin&&adminStudentMap){
-/* v19.6：普通管理员只看选了自己课的学生；超管看全部 */
-var _scopeId=currentUser.isSuperAdmin?null:currentUser.id;
+/* v19.6：普通管理员只看选了自己课的学生；超管看全部
+   v21：再叠加「学校 + 班级」定位 —— 科目/学校/班级 三重过滤统一走 studentInAdminScope */
 Object.values(adminStudentMap).forEach(function(st){
 if(st.id&&st.id!=='admin'&&!processedNames[st.name]){
-if(_scopeId&&getStudentCourse(st.id)!==_scopeId)return;
+if(!studentInAdminScope(st))return;
 processedNames[st.name]=true;
 var td=all[st.id]||createDefaultTrainingData(effectiveAdminId);
 ensureStageShells(td,effectiveAdminId,stageList);    /* v18：补齐启用阶段的空壳 */
@@ -2171,6 +2173,9 @@ Object.keys(all).forEach(function(sid){
 if(!processedIds[sid]&&!processedNames[sid]){
 var td=all[sid]||createDefaultTrainingData(effectiveAdminId);
 var stInfo=adminStudentMap?adminStudentMap[sid]:null;
+/* v21：训练数据里可能有别的课程/别的学校的学生（历史数据缺 adminId 时会并进来），
+   同样要过三重过滤，否则定位形同虚设 */
+if(!studentInAdminScope({id:sid,cls:stInfo?stInfo.cls:(td.cls||'未知'),school:stInfo?stInfo.school:''}))return;
 if(activeClassFilter){
 var stCls=stInfo?stInfo.cls:(td.cls||'未知');
 if(!classMatch(stCls,activeClassFilter))return;
@@ -4745,7 +4750,8 @@ var adminPage=$('pageAdmin');
 if(adminPage)adminPage.classList.add('active');
 var cs=$('cloudStatus');if(cs){cs.textContent='🔄';cs.title='正在加载数据...'}
 showToast('超级教师登录成功，当前课程：'+catInfo.icon+' '+catInfo.name+'类 · '+courseName,'success');
-loadAdminData();
+/* v21：超管选完课程后，再确认学校/班级定位，然后再加载数据 */
+showAdminScopeModal(function(){loadAdminData()});
 }
 
 function finishAdminLogin(u,adminInfo){
@@ -4757,7 +4763,8 @@ var adminPage=$('pageAdmin');
 if(adminPage)adminPage.classList.add('active');
 var cs=$('cloudStatus');if(cs){cs.textContent='🔄';cs.title='正在加载数据...'}
 showToast('教师登录成功','success');
-loadAdminData();
+/* v21：登录成功后先让老师确认定位（学校 + 班级），确认/取消后再加载数据 */
+showAdminScopeModal(function(){loadAdminData()});
 }
 
 function loadAdminData(){
@@ -5567,6 +5574,199 @@ updateSchoolFilters(); /* v20：同步管理端学校筛选候选 */
 try{refreshTrainingExportClassOptions()}catch(e){} /* v17：数据到达后同步实训「导出班级」候选 */
 }
 /* 顶部统计与班级筛选口径保持一致（选「全部班级」时统计全部） */
+/* ============================================================
+ * v21 教师定位：科目 + 学校 + 班级 三重过滤
+ * ------------------------------------------------------------
+ * 老师说清「我在哪」——科目（账号/选课决定）+ 学校 + 班级，
+ * 数据只按这个范围取，同步更快、也不会串校串班。
+ * 存储：localStorage['plc_admin_scope_<adminId>'] = {school, cls, all}
+ *   all:true 表示「全部班级」（超管默认；普通教师选「全部班级」也允许）
+ * 读取必须统一走 getAdminScope()。
+ * ============================================================ */
+var ADMIN_SCOPE_PREFIX='plc_admin_scope_';
+function getAdminScope(adminId){
+var aid=adminId||(currentUser&&currentUser.id)||'';
+var def={school:'',cls:'',all:false};
+if(!aid)return def;
+var o=null;
+try{o=JSON.parse(strg.getItem(ADMIN_SCOPE_PREFIX+aid))}catch(e){o=null}
+if(!o||typeof o!=='object'){
+/* 从未定位过：按稿子返回 {school:'',cls:'',all:false}。
+   注意 cls 为空时班级这一关本来就不生效，所以效果等同「全部」，不会因升级看不见学生。 */
+return def;
+}
+return {
+school:normalizeSchoolName(o.school||''),
+cls:normalizeClassName(o.cls||''),
+all:!!o.all
+};
+}
+function setAdminScope(adminId,scope){
+var aid=adminId||(currentUser&&currentUser.id)||'';
+if(!aid)return null;
+scope=scope||{};
+var cls=normalizeClassName(scope.cls||'');
+if(cls==='__custom__')cls='';
+var val={school:normalizeSchoolName(scope.school||''),cls:cls,all:!!scope.all};
+safeSetItem(ADMIN_SCOPE_PREFIX+aid,JSON.stringify(val));
+return val;
+}
+/* 学生的学校：优先用调用方给的 st.school（可能来自云端记录），
+   其次读学生自己的存储。空值与「未知」都视为「没有学校」，
+   绝不用"默认学校"兜底 —— 否则缺字段的学生会在指定学校下被误放行。 */
+function studentSchoolOf(st){
+var id=st&&(st.id||st.name);
+var cand=[];
+if(st&&st.school!==undefined&&st.school!==null)cand.push(String(st.school));
+try{var raw=strg.getItem('plc_user_school_'+id);if(raw)cand.push(raw)}catch(e){}
+for(var i=0;i<cand.length;i++){
+var v=normalizeSchoolName(cand[i]);
+if(v&&v!=='未知')return v;
+}
+return '';
+}
+/* 统一判定：科目 → 学校 → 班级 三重叠加。所有列学生的地方都用它。 */
+function studentInAdminScope(st){
+if(!st)return false;
+if(!currentUser||!currentUser.isAdmin)return false;
+var sid=st.id||st.name;
+/* ① 科目：普通教师只限自己的课；超管限当前选中的课程（未选=全部） */
+if(!currentUser.isSuperAdmin){
+if(getStudentCourse(sid)!==currentUser.id)return false;
+}else{
+var cf=getCourseFilterAdminId();
+if(cf&&getStudentCourse(sid)!==cf)return false;
+}
+var sc=getAdminScope(currentUser.id);
+/* ② 学校 */
+if(sc.school&&sc.school!=='全部学校'){
+if(studentSchoolOf(st)!==sc.school)return false;
+}
+/* ③ 班级（all:true 时只保留学校这道限制） */
+if(!sc.all&&sc.cls&&sc.cls!=='全部班级'){
+var stCls=st.cls||'';
+if(typeof classMatch==='function'){
+if(!classMatch(stCls,sc.cls))return false;
+}else if(stCls!==sc.cls)return false;
+}
+return true;
+}
+/* 学生账户表按姓名处理，需要一个最小 stub 交给统一判定 */
+function scopeStubForName(name){
+var st=(adminStudentMap&&adminStudentMap[name])?adminStudentMap[name]:null;
+return {id:name,cls:st?st.cls:'未知',school:st?st.school:''};
+}
+function getAdminScopeCourseLabel(){
+try{
+if(currentUser&&currentUser.isSuperAdmin){
+var cf=getCourseFilterAdminId();
+if(!cf)return '全部科目（超级教师）';
+var a=loadAdmins()[cf]||{};
+return (a.courseName||'实训课程')+(a.name?(' · '+a.name):'');
+}
+var me=loadAdmins()[currentUser.id]||{};
+return me.courseName||'实训课程';
+}catch(e){return '实训课程'}
+}
+function buildScopeClassOptions(selected){
+/* 复用班级池，但去掉「手动输入」哨兵项 —— 定位弹窗里只做选择 */
+return buildClassOptions(selected).replace(/<option value="__custom__">[^<]*<\/option>/,'');
+}
+function updateAdminScopeLabel(){
+var el=$('adminScopeLabel');
+if(!el)return;
+if(!currentUser||!currentUser.isAdmin){el.textContent='';return}
+var sc=getAdminScope(currentUser.id);
+el.textContent='📍 '+(sc.school||'全部学校')+' · '+((sc.all||!sc.cls)?'全部班级':sc.cls);
+}
+function showAdminScopeModal(cb){
+if(!currentUser||!currentUser.isAdmin){if(cb)cb(false);return}
+window._adminScopeCb=(typeof cb==='function')?cb:null;
+var old=$('adminScopeOverlay');if(old)old.remove();
+var cur=getAdminScope(currentUser.id);
+var schHtml='<option value="">全部学校</option>';
+getKnownSchools().forEach(function(s){
+schHtml+='<option value="'+esc(s)+'"'+(s===cur.school?' selected':'')+'>'+esc(s)+'</option>';
+});
+var clsHtml=buildScopeClassOptions(cur.all?'':cur.cls);
+var courseLabel=getAdminScopeCourseLabel();
+var ov=document.createElement('div');
+ov.id='adminScopeOverlay';
+ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px';
+ov.innerHTML='<div style="background:#fff;border-radius:16px;padding:26px 30px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
++'<div style="text-align:center;margin-bottom:18px"><div style="font-size:36px;margin-bottom:6px">📍</div>'
++'<h3 style="margin:0 0 6px;color:#1a237e;font-size:19px">选择你的定位</h3>'
++'<p style="color:#666;font-size:13px;margin:0">按「科目 + 学校 + 班级」同步数据，速度更快</p></div>'
++'<div style="margin-bottom:14px"><label style="display:block;font-size:13px;color:#666;margin-bottom:6px">学校</label>'
++'<select id="adminScopeSchool" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:15px">'+schHtml+'</select></div>'
++'<div style="margin-bottom:14px"><label style="display:block;font-size:13px;color:#666;margin-bottom:6px">班级</label>'
++'<select id="adminScopeClass" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:15px">'+clsHtml+'</select></div>'
++'<div style="margin-bottom:18px"><label style="display:block;font-size:13px;color:#666;margin-bottom:6px">科目</label>'
++'<div style="padding:10px 12px;background:#f5f7fb;border-radius:8px;font-size:14px;color:#455a64">'+esc(courseLabel)+'</div></div>'
++'<div style="display:flex;gap:12px;justify-content:center">'
++'<button onclick="cancelAdminScope()" style="padding:10px 20px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#666;font-size:14px;cursor:pointer">取消（保留上次定位）</button>'
++'<button onclick="confirmAdminScope()" style="padding:10px 24px;border:none;border-radius:8px;background:linear-gradient(135deg,#1a237e,#3949ab);color:#fff;font-size:14px;cursor:pointer;font-weight:700">进入</button>'
++'</div></div>';
+document.body.appendChild(ov);
+var selS=$('adminScopeSchool');if(selS)selS.value=cur.school||'';
+var selC=$('adminScopeClass');if(selC)selC.value=(cur.all?'':(cur.cls||''));
+}
+function closeAdminScopeModal(){
+var ov=$('adminScopeOverlay');if(ov)ov.remove();
+}
+function _finishAdminScope(ok){
+closeAdminScopeModal();
+var cb=window._adminScopeCb;
+window._adminScopeCb=null;
+updateAdminScopeLabel();
+if(typeof cb==='function')cb(ok);
+}
+function cancelAdminScope(){
+/* 取消 = 保留上次定位，但登录流程要继续（否则数据永远不加载） */
+_finishAdminScope(false);
+}
+function confirmAdminScope(){
+var sch=$('adminScopeSchool');
+var clsSel=$('adminScopeClass');
+var school=sch?normalizeSchoolName(sch.value):'';
+var clsVal=clsSel?(clsSel.value||''):'';
+if(clsVal==='__custom__')clsVal='';
+clsVal=normalizeClassName(clsVal);
+var scope=setAdminScope(currentUser.id,{school:school,cls:clsVal,all:!clsVal});
+try{applyScopeToFilters(scope)}catch(e){console.error('applyScopeToFilters',e)}
+try{refreshPanelsForScope()}catch(e){console.error('refreshPanelsForScope',e)}
+showToast('已定位：'+(school||'全部学校')+' · '+(clsVal||'全部班级'),'success');
+_finishAdminScope(true);
+}
+/* 把定位同步到上方下拉框，保证「看到的筛选条件」与「实际生效的定位」一致 */
+function applyScopeToFilters(scope){
+if(!currentUser||!currentUser.isAdmin)return;
+scope=scope||getAdminScope(currentUser.id);
+try{
+['adminSchoolFilter','trainingSchoolFilter'].forEach(function(fid){
+var sel=$(fid);if(!sel)return;
+var want=scope.school||'';
+var hit=false;
+for(var i=0;i<sel.options.length;i++){if(sel.options[i].value===want){hit=true;break}}
+sel.value=hit?want:'';
+});
+}catch(e){}
+try{
+var cls=scope.all?'':(scope.cls||'');
+_lastClassSel.admin=cls;_lastClassSel.training=cls;
+['adminClassFilter','trainingClassFilter'].forEach(function(fid){
+var sel=$(fid);if(!sel)return;
+sel.innerHTML=buildClassOptions(cls);
+sel.value=cls;
+});
+}catch(e){}
+updateAdminScopeLabel();
+}
+function refreshPanelsForScope(){
+if(!currentUser||!currentUser.isAdmin)return;
+try{renderAdminDashboard()}catch(e){console.error('refreshPanelsForScope',e)}
+}
+
 function getActiveClassFilter(){
 return getClassFilterValue('admin');
 }
@@ -5706,20 +5906,10 @@ window.addEventListener('resize',syncAdminTabsTop);
 function renderAdminDashboard(){
 var courseFilterAdmin=getCourseFilterAdminId();
 var students=Object.values(adminStudentMap);
-if(courseFilterAdmin){
-students=students.filter(function(st){
-var studentCourse=getStudentCourse(st.id||st.name);
-if(!studentCourse)return false;   /* v19.6：未选课不属于任何课程 */
-return studentCourse===courseFilterAdmin;
-});
-}else if(!currentUser.isSuperAdmin){
-students=students.filter(function(st){
-var studentCourse=getStudentCourse(st.id||st.name);
-if(!studentCourse)return false;   /* v19.6：未选课不属于任何课程 */
-return studentCourse===currentUser.id;
-});
-}
+/* v21：科目 + 学校 + 班级 三重过滤统一走 studentInAdminScope */
+students=students.filter(function(st){return studentInAdminScope(st)});
 students=students.filter(function(st){return isStudentInCategory(st.id||st.name)});
+try{updateAdminScopeLabel()}catch(e){}
 /* t11.0-AI 新增：顶部统计跟随班级筛选，与下方学生列表/实训表口径完全一致
    （此前选了班级，上面统计仍是全量，切换到「全部班级」反而看不出变化） */
 var clsFilter=getActiveClassFilter();
@@ -5758,20 +5948,8 @@ if(search)students=students.filter(function(st){return st.name.toLowerCase().ind
 if(classFilter)students=students.filter(function(st){return classMatch(st.cls,classFilter)});
 var schoolFilterA=(function(){var el=$('adminSchoolFilter');return el?(el.value||'').trim():''})();
 if(schoolFilterA)students=students.filter(function(st){return getStudentSchool(st.id||st.name)===schoolFilterA});
-if(courseFilterAdmin){
-students=students.filter(function(st){
-var studentCourse=getStudentCourse(st.id||st.name);
-if(!studentCourse)return false;   /* v19.6：未选课不属于任何课程 */
-return studentCourse===courseFilterAdmin;
-});
-}
-if(!currentUser.isSuperAdmin&&!courseFilterAdmin){
-students=students.filter(function(st){
-var studentCourse=getStudentCourse(st.id||st.name);
-if(!studentCourse)return false;   /* v19.6：未选课不属于任何课程 */
-return studentCourse===currentUser.id;
-});
-}
+/* v21：科目 + 学校 + 班级 三重过滤统一走 studentInAdminScope（上面的班级/学校下拉是临时筛选，叠加生效） */
+students=students.filter(function(st){return studentInAdminScope(st)});
 students=students.filter(function(st){return isStudentInCategory(st.id||st.name)});
 if(!students.length){$('adminStudentList').innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-icon">📭</div><h3>暂无学生数据</h3><p>等待学生答题后，数据将自动显示</p></div>';return}
 /* t11.0-AI 修复：原来固定按平均分降序排列，新添加的学生（成绩低/还未考核）
@@ -5890,19 +6068,8 @@ var registeredNames=safeJsonParse(strg.getItem('plc_user_names'),[]);
 var container=$('adminAccountList');
 if(!container)return;
 var courseFilterAdmin=getCourseFilterAdminId();
-if(courseFilterAdmin){
-registeredNames=registeredNames.filter(function(name){
-var studentCourse=getStudentCourse(name);
-if(!studentCourse)return false;   /* v19.6：未选课不属于任何课程 */
-return studentCourse===courseFilterAdmin;
-});
-}else if(!currentUser.isSuperAdmin){
-registeredNames=registeredNames.filter(function(name){
-var studentCourse=getStudentCourse(name);
-if(!studentCourse)return false;   /* v19.6：未选课不属于任何课程 */
-return studentCourse===currentUser.id;
-});
-}
+/* v21：科目 + 学校 + 班级 三重过滤统一走 studentInAdminScope */
+registeredNames=registeredNames.filter(function(name){return studentInAdminScope(scopeStubForName(name))});
 registeredNames=registeredNames.filter(function(name){return isStudentInCategory(name)});
 if(!registeredNames.length){
 container.innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-icon">📭</div><h3>暂无学生账户</h3><p>当前科目下暂无注册学生</p></div>';
