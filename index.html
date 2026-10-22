@@ -195,6 +195,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .training-grade-select.grade-c{border-color:#f9ab00;background:#fef7e0;color:#e37400}
 .training-grade-select.grade-d{border-color:#d93025;background:#fce8e6;color:#d93025}
 .training-grade-select.grade-empty{border-color:#999;background:#f5f5f5;color:#999}
+.training-grade-select.grade-t0{border-color:#0d904f;background:#e6f4ea;color:#0d904f}
+.training-grade-select.grade-t1{border-color:#1a73e8;background:#e8f0fe;color:#1a73e8}
+.training-grade-select.grade-t2{border-color:#f9ab00;background:#fef7e0;color:#e37400}
+.training-grade-select.grade-t3{border-color:#d93025;background:#fce8e6;color:#d93025}
+.training-grade-select.grade-t4{border-color:#7b1fa2;background:#f3e5f5;color:#7b1fa2}
+.training-grade-select.grade-t5{border-color:#00838f;background:#e0f7fa;color:#00838f}
 .training-day-block{border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;background:#fafafa}
 .training-day-block h5{font-size:14px;margin-bottom:10px;color:var(--primary);display:flex;align-items:center;gap:8px}
 .training-day-block .grade-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
@@ -287,6 +293,7 @@ input,select,textarea{font-size:16px!important}
 <div class="login-form card"><div class="card-title"><span class="icon-box" style="background:var(--primary-light);color:var(--primary)">🔑</span> 学生登录</div>
 <div class="form-group"><label>姓名</label><input type="text" id="studentName" placeholder="请输入你的姓名"></div>
 <div class="form-group"><label>班级</label><input type="text" id="studentClass" list="classList" placeholder="请选择或输入班级"><datalist id="classList"><option value="机电232班"><option value="机电241班"><option value="机电242班"><option value="机电243班"></datalist></div>
+<div class="form-group"><label>学校 <span style="color:var(--danger)">*</span></label><input type="text" id="studentSchool" list="schoolList" placeholder="请选择或输入所在学校（必填）"><datalist id="schoolList"></datalist><div style="font-size:12px;color:var(--text-secondary);margin-top:4px">请输入你就读学校的全称，系统按学校归类评价数据（必填）</div></div>
 <button class="btn btn-primary btn-lg btn-block" onclick="login()">进入系统</button>
 </div></div>
 <div id="adminLoginForm">
@@ -359,7 +366,7 @@ input,select,textarea{font-size:16px!important}
 <input type="text" id="trainingSearch" placeholder="搜索姓名/班级..." style="flex:1;min-width:120px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" oninput="renderTrainingTable()">
 <select id="trainingCategoryFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;display:none" onchange="renderTrainingTable()"></select>
 <select id="trainingCourseFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;display:none" onchange="syncCourseFilter('training');loadAdminData()"></select>
-<select id="trainingClassFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="syncClassFilter('training')"><option value="">全部班级</option><option value="机电232班">机电232班</option><option value="机电241班">机电241班</option><option value="机电242班">机电242班</option><option value="机电243班">机电243班</option></select>
+<select id="trainingClassFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="syncClassFilter('training')"><option value="">全部班级</option><option value="机电232班">机电232班</option><option value="机电241班">机电241班</option><option value="机电242班">机电242班</option><option value="机电243班">机电243班</option></select><select id="trainingSchoolFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="trainingPage=1;renderTrainingTable()" title="按学校筛选学生"><option value="">全部学校</option></select>
 <select id="trainingSortFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="trainingPage=1;renderTrainingTable()"><option value="newest_desc">最新添加 ↓</option><option value="composite_desc">综合分 ↓</option><option value="name_asc">姓名 A→Z</option><option value="name_desc">姓名 Z→A</option><option value="composite_asc">综合分 ↑</option><option value="theory_desc">安全准入分 ↓</option><option value="process_desc">过程分 ↓</option><option value="final_desc">实训分 ↓</option></select>
 <button class="btn btn-outline" onclick="initAllTrainingData()" title="为所有有答题记录的学生初始化实训考核数据">🔄 初始化全部数据</button>
 <span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-size:13px;color:var(--text-secondary)">导出班级</span><select id="trainingExportClass" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" title="选择要导出的班级（只影响导出文件，不影响上方列表筛选）"><option value="">全部班级</option></select><button class="btn btn-outline" onclick="exportTrainingToExcel()" title="导出实训考核详细数据为Excel文件（按左侧「导出班级」选择）">📥 导出Excel</button></span>
@@ -382,11 +389,12 @@ input,select,textarea{font-size:16px!important}
 <div id="stageConfigSection" style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px dashed var(--border)"><h4 style="margin-bottom:8px;font-size:14px">🗂️ 考核阶段设置 <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:6px">把「周一~周五」换成你自己的项目/任务阶段</span></h4><div id="stageConfigList"></div><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="addStage()">➕ 添加阶段</button><button class="btn btn-outline btn-sm" onclick="resetStages()">↩️ 恢复为「周一~周五」</button><button class="btn btn-primary btn-sm" onclick="saveStages()">💾 保存</button></div><div id="stageConfigHint" style="font-size:12px;color:var(--text-secondary);margin-top:8px"></div></div>
 <div id="processDimConfigSection" style="margin-bottom:16px"><h4 style="margin-bottom:8px;font-size:14px">📋 过程性评价维度</h4><div id="processDimConfigList"></div><button class="btn btn-outline btn-sm" onclick="showAddProcessDimModal()" style="margin-top:8px">➕ 添加过程性指标</button></div>
 <div id="finalDimConfigSection"><h4 style="margin-bottom:8px;font-size:14px">🏆 实训考核维度</h4><div id="finalDimConfigList"></div><button class="btn btn-outline btn-sm" onclick="showAddFinalDimModal()" style="margin-top:8px">➕ 添加实训考核指标</button></div>
+<div id="gradeTierConfigSection" style="margin-bottom:16px"><h4 style="margin-bottom:8px;font-size:14px">🎚️ 评价档次与分数 <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:6px">自由设置几个档次，每档对应分数与晋级下限</span></h4><div id="gradeTierConfigList"></div><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="addGradeTier()">➕ 添加档次</button><button class="btn btn-outline btn-sm" onclick="resetGradeTiers()">↩️ 恢复默认（A95/B85/C70/D50）</button><button class="btn btn-primary btn-sm" onclick="saveGradeTiers()">💾 保存档次</button></div><div id="gradeTierConfigHint" style="font-size:12px;color:var(--text-secondary);margin-top:8px"></div></div>
 <div id="weightConfigSection" style="margin-top:20px;padding-top:16px;border-top:2px dashed var(--border)"><h4 style="margin-bottom:8px;font-size:14px">⚖️ 成绩权重配置</h4><div id="weightConfigList"></div></div>
 </div>
 
 <div class="card fade-in" id="adminSecStudents"><div class="card-title"><span class="icon-box" style="background:var(--primary-light);color:var(--primary)">👥</span> 学生列表 <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:8px">点击学生查看详细画像</span></div>
-<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="adminSearch" placeholder="搜索姓名/班级..." style="flex:1;min-width:140px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" oninput="adminStudentPage=1;renderAdminStudents()"><select id="adminSortFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="adminStudentPage=1;renderAdminStudents()"><option value="newest_desc">最新添加 ↓</option><option value="score_desc">平均分 ↓</option><option value="quiz_desc">答题次数 ↓</option><option value="name_asc">姓名 A→Z</option><option value="class_asc">班级 A→Z</option></select><select id="adminCategoryFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;display:none" onchange="adminStudentPage=1;renderAdminDashboard()"></select><select id="adminCourseFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;display:none" onchange="syncCourseFilter('admin');adminStudentPage=1;loadAdminData()"></select><select id="adminClassFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="onClassFilterChange('admin')" title="可按班级筛选；班级不在列表里时选「手动输入班级」"><option value="">全部班级</option><option value="机电232班">机电232班</option><option value="机电241班">机电241班</option><option value="机电242班">机电242班</option><option value="机电243班">机电243班</option></select></div>
+<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="adminSearch" placeholder="搜索姓名/班级..." style="flex:1;min-width:140px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" oninput="adminStudentPage=1;renderAdminStudents()"><select id="adminSortFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="adminStudentPage=1;renderAdminStudents()"><option value="newest_desc">最新添加 ↓</option><option value="score_desc">平均分 ↓</option><option value="quiz_desc">答题次数 ↓</option><option value="name_asc">姓名 A→Z</option><option value="class_asc">班级 A→Z</option></select><select id="adminCategoryFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;display:none" onchange="adminStudentPage=1;renderAdminDashboard()"></select><select id="adminCourseFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;display:none" onchange="syncCourseFilter('admin');adminStudentPage=1;loadAdminData()"></select><select id="adminClassFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="onClassFilterChange('admin')" title="可按班级筛选；班级不在列表里时选「手动输入班级」"><option value="">全部班级</option><option value="机电232班">机电232班</option><option value="机电241班">机电241班</option><option value="机电242班">机电242班</option><option value="机电243班">机电243班</option></select><select id="adminSchoolFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="adminStudentPage=1;renderAdminStudents()" title="按学校筛选学生"><option value="">全部学校</option></select></div>
 <div id="adminStudentList"></div></div>
 
 <div class="card fade-in" id="adminSecRecords"><div class="card-title"><span class="icon-box" style="background:#e8f5e9;color:#2e7d32">📋</span> 全部答题记录</div>
@@ -410,6 +418,7 @@ input,select,textarea{font-size:16px!important}
 
 <div class="modal-overlay" id="dimEditModal" style="display:none"><div class="modal" style="max-width:500px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 id="dimEditTitle" style="margin:0">📐 维度配置</h3><button class="btn btn-outline" onclick="closeDimEditModal()" style="padding:4px 12px;font-size:12px">✕ 关闭</button></div><div id="dimEditContent"></div></div></div>
 <div class="modal-overlay" id="customClassModal" style="display:none"><div class="modal" style="max-width:460px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0">✏️ 手动输入班级</h3><button class="btn btn-outline" onclick="closeCustomClassModal()" style="padding:4px 12px;font-size:12px">✕ 关闭</button></div><div class="form-group"><label>班级名称</label><input type="text" id="customClassInput" placeholder="例如：机电244班" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:15px" onkeydown="if(event.key==='Enter')confirmCustomClass()"></div><div id="customClassHint" style="font-size:12px;color:var(--text-secondary);line-height:2;margin-bottom:8px"></div><div style="background:#e8f5e9;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:12px;color:#2e7d32">💡 输入后会记住这个班级，下次可直接在下拉框中选择；留空或填「全部」表示查看全部班级。</div><div style="display:flex;gap:12px;justify-content:flex-end"><button class="btn btn-outline" onclick="closeCustomClassModal()">取消</button><button class="btn btn-primary" onclick="confirmCustomClass()">确定筛选</button></div></div></div>
+<div class="modal-overlay" id="studentSchoolModal" style="display:none"><div class="modal" style="max-width:460px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0">🏫 修改学校</h3><button class="btn btn-outline" onclick="closeStudentSchoolModal()" style="padding:4px 12px;font-size:12px">✕ 关闭</button></div><div class="form-group"><label>学生</label><input type="text" id="studentSchoolName" disabled style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#f5f5f5"></div><div class="form-group"><label>所在学校</label><input type="text" id="studentSchoolInput" list="schoolList" placeholder="请输入学校全称" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px"></div><div style="font-size:12px;color:var(--text-secondary);line-height:1.8;margin-bottom:12px" id="studentSchoolHint"></div><div style="display:flex;gap:12px;justify-content:flex-end"><button class="btn btn-outline" onclick="closeStudentSchoolModal()">取消</button><button class="btn btn-primary" onclick="confirmStudentSchool()">保存</button></div></div></div>
 
 <div class="modal-overlay" id="adminEditModal" style="display:none"><div class="modal" style="max-width:500px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 id="adminEditTitle" style="margin:0">👤 管理员配置</h3><button class="btn btn-outline" onclick="closeAdminEditModal()" style="padding:4px 12px;font-size:12px">✕ 关闭</button></div><div id="adminEditContent"></div></div></div>
 
@@ -1181,12 +1190,6 @@ changed=true;
 return changed;
 }
 var EVAL_DIMS=['安全规范','接线操作','程序设计','工位整理','纪律表现'];
-function scoreToGrade(score){
-if(score>=90)return'A';
-if(score>=80)return'B';
-if(score>=60)return'C';
-return'D';
-}
 function getEvalConfig(){
 try{return JSON.parse(strg.getItem('plc_eval_config'))||{}}catch(e){console.error('读取评价配置失败:',e);return{}}
 }
@@ -1488,6 +1491,7 @@ return saved;
 }
 function saveAdmins(a){
 try{clearStageCache()}catch(e0){}   /* v18：阶段配置可能随之变化，必须失效缓存 */
+try{clearGradeTierCache()}catch(e1){}   /* v20：档次配置可能随之变化，必须失效缓存 */
 safeSetItem('plc_admins',JSON.stringify(a));
 if(currentUser&&currentUser.isAdmin){
 cloudWrite('admins_config',{admins:a,syncedBy:currentUser.id,syncedAt:new Date().toISOString()},null,true);
@@ -1534,7 +1538,94 @@ return chs;
 }
 var paperSel={chs:{},types:{}};
 
-var GRADE_MAP={'':0,A:95,B:85,C:70,D:50};
+/* ============================================================
+ * v20 评价档次（可配置）：像评价维度一样自由设置几个档次，
+ * 每个档次可改名称、对应分数与晋级下限分。
+ * 默认 A(95)/B(85)/C(70)/D(50)，与历史数据逐字一致。
+ * 存储位置：admins[adminId].gradeTiers（随 admins_config 云端同步）
+ * ============================================================ */
+var DEFAULT_GRADE_TIERS=[
+{name:'A',score:95,min:90},
+{name:'B',score:85,min:80},
+{name:'C',score:70,min:60},
+{name:'D',score:50,min:0}
+];
+var GRADE_TIER_MAX=6,GRADE_TIER_MIN=2;
+var _gradeTierCache={};
+function clearGradeTierCache(){_gradeTierCache={}}
+function normalizeGradeTiers(raw){
+var list=[];
+(raw||[]).forEach(function(t){
+if(!t)return;
+var nm=String(t.name==null?'':t.name).replace(/\s+/g,' ').trim();
+if(!nm)return;
+var sc=Number(t.score);
+if(!isFinite(sc)||sc<0||sc>100)return;
+var mn=Number(t.min);
+if(!isFinite(mn)||mn<0||mn>100)mn=0;
+list.push({name:nm,score:Math.round(sc),min:Math.round(mn)});
+});
+/* 按分数降序（高分档在前）；同名只留第一个 */
+list.sort(function(a,b){return b.score-a.score});
+var seen={},out=[];
+list.forEach(function(t){if(seen[t.name])return;seen[t.name]=true;out.push(t)});
+if(out.length<GRADE_TIER_MIN)return DEFAULT_GRADE_TIERS.slice();
+if(out.length>GRADE_TIER_MAX)out=out.slice(0,GRADE_TIER_MAX);
+/* 下限分不得高于自身分数；不得高于上一档下限（从高到低压平）；最低档下限归 0 */
+for(var i=0;i<out.length;i++){
+if(out[i].min>out[i].score)out[i].min=out[i].score;
+if(i>0&&out[i].min>out[i-1].min)out[i].min=out[i-1].min;
+}
+if(out.length&&out[out.length-1].min>0)out[out.length-1].min=0;
+return out;
+}
+function getGradeTiers(adminId){
+var aid=adminId||'';
+if(!aid){
+try{aid=(typeof getCourseFilterAdminId==='function'&&getCourseFilterAdminId())||''}catch(e0){}
+if(!aid)aid=(currentUser&&currentUser.id)||'';
+}
+if(!aid)aid='guoxiaohu';
+var ck=aid;
+if(_gradeTierCache[ck])return _gradeTierCache[ck];
+var cfg=null;
+try{cfg=getAdminCourseConfig(aid)}catch(e1){cfg=null}
+var tiers=(cfg&&cfg.gradeTiers&&cfg.gradeTiers.length)?normalizeGradeTiers(cfg.gradeTiers):DEFAULT_GRADE_TIERS.slice();
+_gradeTierCache[ck]=tiers;
+return tiers;
+}
+/* 档次名 → 分数；未评/未知档一律 0 分 */
+function getGradeMap(adminId){
+var tiers=getGradeTiers(adminId),m={};
+m['']=0;
+tiers.forEach(function(t){m[t.name]=t.score});
+return m;
+}
+function gradeScoreOf(adminId,grade){
+if(grade===undefined||grade===null||grade==='')return 0;
+var m=getGradeMap(adminId);
+var v=m[grade];
+return v===undefined?0:v;
+}
+/* 分数 → 档次名（按各档「晋级下限分」判断，与旧 90/80/60 规则一致） */
+function scoreToGrade(score,adminId){
+var tiers=getGradeTiers(adminId);
+var s=Number(score);
+if(!isFinite(s))s=0;
+for(var i=0;i<tiers.length;i++){
+if(s>=tiers[i].min)return tiers[i].name;
+}
+return tiers.length?tiers[tiers.length-1].name:'D';
+}
+function lowestGradeName(adminId){var t=getGradeTiers(adminId);return t.length?t[t.length-1].name:'D'}
+function highestGradeName(adminId){var t=getGradeTiers(adminId);return t.length?t[0].name:'A'}
+/* 档位索引 → 固定配色（与 CSS grade-t0..t5 对应） */
+var GRADE_TIER_COLORS=['#0d904f','#1a73e8','#f9ab00','#d93025','#7b1fa2','#00838f'];
+function gradeColorOf(adminId,grade){
+var tiers=getGradeTiers(adminId);
+for(var i=0;i<tiers.length;i++){if(tiers[i].name===grade)return GRADE_TIER_COLORS[i%GRADE_TIER_COLORS.length]}
+return'#999';
+}
 var SAFETY_CHAPTERS=['ch9','ch10'];
 function isSafetyChapter(cid){return SAFETY_CHAPTERS.indexOf(cid)>=0}
 /* v16.2：哪些专业大类【不开设】安全准入考试（目前只有 CAD）。
@@ -1581,7 +1672,7 @@ READ_URL:'https://www.edunav.cn/api/data-tasks/task_187ff1e5cb8a/records',
 syncing:false,
 lastSync:0
 };
-var CLOUD2_TYPES=['message_data','message_read','student_course','student_category','pet_data','quiz_result','user_pins','batch_send_log','training_scores_batch']; /* t11.0：training_scores_batch 迁移到 CLOUD2（容量充裕），CLOUD 已满 */
+var CLOUD2_TYPES=['message_data','message_read','student_course','student_category','student_school','pet_data','quiz_result','user_pins','batch_send_log','training_scores_batch']; /* v20：学生学校归属走 CLOUD2 */ /* t11.0：training_scores_batch 迁移到 CLOUD2（容量充裕），CLOUD 已满 */
 function getCloudForType(recordType){return CLOUD2_TYPES.indexOf(recordType)>=0?CLOUD2:CLOUD}
 function cloudHeaders(apiObj){apiObj=apiObj||CLOUD;return{'Authorization':'Bearer '+apiObj.API_KEY,'Content-Type':'application/json'}}
 
@@ -1590,7 +1681,7 @@ if(!currentUser){if(callback)callback(false,null);return}
 if(currentUser.isAdmin&&!allowAdmin){if(callback)callback(false,null);return}
 var cs=$('cloudStatus');if(cs){cs.textContent='📤';cs.title='正在上传...'}
 var apiObj=getCloudForType(recordType);
-var payloadData=Object.assign({},data,{studentName:currentUser.name||'',studentClass:currentUser.cls||''});
+var payloadData=Object.assign({},data,{studentName:currentUser.name||'',studentClass:currentUser.cls||'',studentSchool:currentUser.school||''}); /* v20：所有记录携带学校，便于跨设备补全 */
 if(!preserveStudentId){payloadData.studentId=currentUser.id}
 else if(data.studentId){payloadData.studentId=data.studentId}
 if(preserveStudentId){
@@ -1760,7 +1851,7 @@ return data;
 }
 function safeSetItem(key,value){
 /* v18：任何 plc_admins 写入（含云端恢复）都必须让阶段缓存失效，否则会读到旧阶段列表 */
-if(key==='plc_admins'){try{clearStageCache()}catch(e0){}}
+if(key==='plc_admins'){try{clearStageCache()}catch(e0){}try{clearGradeTierCache()}catch(e1){}}
 try{strg.setItem(key,value);return true}
 catch(e){
 console.warn('localStorage quota exceeded for key:',key);
@@ -1916,19 +2007,20 @@ if(safetyRecords.length===0)return 0;
 return Math.max.apply(null,safetyRecords.map(function(r){return r.sc||0}));
 }
 
-function calcDailyAvg(dailyScores,processDims){
+function calcDailyAvg(dailyScores,processDims,adminId){
 if(!dailyScores)return 70;
 var dims=processDims||DEFAULT_PROCESS_DIMS;
 var sum=0;
-dims.forEach(function(dim){var g=GRADE_MAP[dailyScores[dim]];sum+=(g!==undefined?g:0)});
+dims.forEach(function(dim){sum+=gradeScoreOf(adminId,dailyScores[dim])});
 return Math.round(sum/dims.length);
 }
 
-function calcDailyGrade(avg){if(avg>=90)return'A';if(avg>=80)return'B';if(avg>=60)return'C';return'D';}
+/* v20：等级换算改用可配置档次 */
+function calcDailyGrade(avg,adminId){return scoreToGrade(avg,adminId)}
 
 /* v18：只把遍历源从 WEEKDAYS 换成阶段 id 列表，算法（缺录记 0、按已存在槽位摊薄）一字未改。
    第 3 个参数可显式传入，避免在循环里重复解析阶段配置。 */
-function calcWeeklyProcessAvg(dailyScores,processDims,stageIdsArr){
+function calcWeeklyProcessAvg(dailyScores,processDims,stageIdsArr,adminId){
 if(!dailyScores)return 70;
 var dims=processDims||DEFAULT_PROCESS_DIMS;
 var ids=stageIdsArr||stageIds();
@@ -1936,7 +2028,7 @@ var sum=0;
 var count=0;
 ids.forEach(function(sid){
 if(dailyScores[sid]){
-sum+=calcDailyAvg(dailyScores[sid],dims);
+sum+=calcDailyAvg(dailyScores[sid],dims,adminId);
 count++;
 }
 });
@@ -1981,13 +2073,12 @@ if(isFinite(v)&&v>=0){out[dim]=v;if(v>0)any=true}else{out[dim]=0}
 return any?out:null;
 }
 
-function calcFinalAvg(finalScores,finalDims,finalDimWeights){
+function calcFinalAvg(finalScores,finalDims,finalDimWeights,adminId){
 if(!finalScores)return 70;
 var dims=finalDims||DEFAULT_FINAL_DIMS;
 var sum=0,wsum=0;
 dims.forEach(function(dim){
-var g=GRADE_MAP[finalScores[dim]];
-if(g===undefined)g=0;
+var g=gradeScoreOf(adminId,finalScores[dim]);
 var w=(finalDimWeights&&finalDimWeights[dim]!=null&&isFinite(finalDimWeights[dim]))?Number(finalDimWeights[dim]):1;
 if(w<0)w=0;
 sum+=g*w;
@@ -2004,16 +2095,17 @@ if(s<=0){a=0.2;b=0.3;c=0.5;s=1}
 return Math.round(theoryAvg*a/s+processAvg*b/s+finalAvg*c/s); /* 支持百分制或小数权重 */
 }
 
-function checkAlert(dailyScores,processDims,stageIdsArr){
+function checkAlert(dailyScores,processDims,stageIdsArr,adminId){
 if(!dailyScores)return false;
 var dims=processDims||DEFAULT_PROCESS_DIMS;
 var ids=stageIdsArr||stageIds();
+var lowName=lowestGradeName(adminId);
 var hasAlert=false;
 ids.forEach(function(sid){
 var bucket=dailyScores[sid];
 if(!bucket)return;
 var dCount=0;
-dims.forEach(function(dim){if(bucket[dim]==='D')dCount++});
+dims.forEach(function(dim){if(bucket[dim]===lowName)dCount++});
 if(dCount>=2)hasAlert=true;
 });
 return hasAlert;
@@ -2064,11 +2156,11 @@ processedNames[st.name]=true;
 var td=all[st.id]||createDefaultTrainingData(effectiveAdminId);
 ensureStageShells(td,effectiveAdminId,stageList);    /* v18：补齐启用阶段的空壳 */
 var theoryAvg=getTheoryAvg(st.id);
-var processAvg=calcWeeklyProcessAvg(td.dailyScores,processDims,stageIdList);
-var finalAvg=calcFinalAvg(td.finalScores,finalDims,finalDimWeights);
+var processAvg=calcWeeklyProcessAvg(td.dailyScores,processDims,stageIdList,effectiveAdminId);
+var finalAvg=calcFinalAvg(td.finalScores,finalDims,finalDimWeights,effectiveAdminId);
 var composite=calcComposite(theoryAvg,processAvg,finalAvg,adminWeights);
-var alert=checkAlert(td.dailyScores,processDims,stageIdList);
-students.push({id:st.id,name:st.name,cls:st.cls,theoryAvg:theoryAvg,processAvg:processAvg,finalAvg:finalAvg,composite:composite,alert:alert,data:td,firstSeen:st.firstSeen||''});
+var alert=checkAlert(td.dailyScores,processDims,stageIdList,effectiveAdminId);
+students.push({id:st.id,name:st.name,cls:st.cls,school:getStudentSchool(st.id),theoryAvg:theoryAvg,processAvg:processAvg,finalAvg:finalAvg,composite:composite,alert:alert,data:td,firstSeen:st.firstSeen||''});
 }
 });
 }
@@ -2085,12 +2177,12 @@ if(!classMatch(stCls,activeClassFilter))return;
 }
 ensureStageShells(td,effectiveAdminId,stageList);    /* v18：补齐启用阶段的空壳 */
 var theoryAvg=getTheoryAvg(sid);
-var processAvg=calcWeeklyProcessAvg(td.dailyScores,processDims,stageIdList);
-var finalAvg=calcFinalAvg(td.finalScores,finalDims,finalDimWeights);
+var processAvg=calcWeeklyProcessAvg(td.dailyScores,processDims,stageIdList,effectiveAdminId);
+var finalAvg=calcFinalAvg(td.finalScores,finalDims,finalDimWeights,effectiveAdminId);
 var composite=calcComposite(theoryAvg,processAvg,finalAvg,adminWeights);
-var alert=checkAlert(td.dailyScores,processDims,stageIdList);
+var alert=checkAlert(td.dailyScores,processDims,stageIdList,effectiveAdminId);
 var displayName=stInfo?stInfo.name:sid;
-students.push({id:sid,name:displayName,cls:stInfo?stInfo.cls:'未知',theoryAvg:theoryAvg,processAvg:processAvg,finalAvg:finalAvg,composite:composite,alert:alert,data:td,firstSeen:(stInfo&&stInfo.firstSeen)||''});
+students.push({id:sid,name:displayName,cls:stInfo?stInfo.cls:'未知',school:getStudentSchool(sid),theoryAvg:theoryAvg,processAvg:processAvg,finalAvg:finalAvg,composite:composite,alert:alert,data:td,firstSeen:(stInfo&&stInfo.firstSeen)||''});
 }
 });
 return students;
@@ -2401,14 +2493,14 @@ var allTraining=getTrainingData(adminId);
 if(!allTraining[currentUser.id])allTraining[currentUser.id]=createDefaultTrainingData(adminId);
 var selfAvg=Math.round(EVAL_DIMS.reduce(function(s,d){return s+(scores[d]||0)},0)/EVAL_DIMS.length);
 if(allTraining[currentUser.id].dailyScores&&allTraining[currentUser.id].dailyScores[day]){
-allTraining[currentUser.id].dailyScores[day]['自评']=scoreToGrade(selfAvg);
+allTraining[currentUser.id].dailyScores[day]['自评']=scoreToGrade(selfAvg,adminId);
 }else{
 if(!allTraining[currentUser.id].dailyScores)allTraining[currentUser.id].dailyScores={};
 var adminConfig=getAdminCourseConfig(adminId);
 var pDims=adminConfig.processDims||DEFAULT_PROCESS_DIMS;
 allTraining[currentUser.id].dailyScores[day]={};
 pDims.forEach(function(dim){allTraining[currentUser.id].dailyScores[day][dim]=''});
-allTraining[currentUser.id].dailyScores[day]['自评']=scoreToGrade(selfAvg);
+allTraining[currentUser.id].dailyScores[day]['自评']=scoreToGrade(selfAvg,adminId);
 }
 saveTrainingData(allTraining,adminId);
 closeEvalModal('selfEvalModal');
@@ -2459,14 +2551,14 @@ var allTraining=getTrainingData(adminId);
 if(!allTraining[partner.id])allTraining[partner.id]=createDefaultTrainingData(adminId);
 var peerAvg=Math.round(EVAL_DIMS.reduce(function(s,d){return s+(scores[d]||0)},0)/EVAL_DIMS.length);
 if(allTraining[partner.id].dailyScores&&allTraining[partner.id].dailyScores[day]){
-allTraining[partner.id].dailyScores[day]['互评']=scoreToGrade(peerAvg);
+allTraining[partner.id].dailyScores[day]['互评']=scoreToGrade(peerAvg,adminId);
 }else{
 if(!allTraining[partner.id].dailyScores)allTraining[partner.id].dailyScores={};
 var pAdminConfig=getAdminCourseConfig(adminId);
 var pDims2=pAdminConfig.processDims||DEFAULT_PROCESS_DIMS;
 allTraining[partner.id].dailyScores[day]={};
 pDims2.forEach(function(dim){allTraining[partner.id].dailyScores[day][dim]=''});
-allTraining[partner.id].dailyScores[day]['互评']=scoreToGrade(peerAvg);
+allTraining[partner.id].dailyScores[day]['互评']=scoreToGrade(peerAvg,adminId);
 }
 saveTrainingData(allTraining,adminId);
 closeEvalModal('peerEvalModal');
@@ -2509,6 +2601,8 @@ var search=($('trainingSearch')?$('trainingSearch').value:'').trim().toLowerCase
 var classFilter=getClassFilterValue('training'); /* t11.0-AI：统一解析，排除 __custom__ 哨兵值 */
 if(search)students=students.filter(function(s){return s.name.toLowerCase().indexOf(search)>=0||s.cls.toLowerCase().indexOf(search)>=0});
 if(classFilter)students=students.filter(function(s){return classMatch(s.cls,classFilter)});
+var schoolFilterT=(function(){var el=$('trainingSchoolFilter');return el?(el.value||'').trim():''})();
+if(schoolFilterT)students=students.filter(function(s){return getStudentSchool(s.id)===schoolFilterT});
 if(!currentUser.isSuperAdmin){
 students=students.filter(function(s){
 var studentCourse=getStudentCourse(s.id||s.name);
@@ -2562,7 +2656,7 @@ var tblCfg=null;
 try{tblCfg=getAdminCourseConfig(tblAdminId)}catch(e){tblCfg=null}
 var tblHasSafety=courseHasSafetyExam(tblCfg&&tblCfg.category);
 var safetyTh=tblHasSafety?('<th>安全准入<br><small>('+wT+'%)</small></th>'):'<th>安全准入<br><small>(本科目不设)</small></th>';
-var html='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="history-table"><thead><tr><th>姓名</th><th>班级</th><th>专业大类</th>'+safetyTh+'<th>过程总分<br><small>('+wP+'%折算)</small></th><th>实训分<br><small>('+wF+'%折算)</small></th><th>综合总评</th><th>预警状态</th><th>操作</th></tr></thead><tbody>';
+var html='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="history-table"><thead><tr><th>姓名</th><th>班级</th><th>学校</th><th>专业大类</th>'+safetyTh+'<th>过程总分<br><small>('+wP+'%折算)</small></th><th>实训分<br><small>('+wF+'%折算)</small></th><th>综合总评</th><th>预警状态</th><th>操作</th></tr></thead><tbody>';
 pageStudents.forEach(function(st){
 var grade=getCompositeGrade(st.composite);
 var stCat=getStudentCategory(st.id);
@@ -2582,7 +2676,7 @@ var theoryLabel=st.theoryAvg>0?'<span style="font-size:10px;padding:1px 4px;bord
 var theoryCell=stNoSafety
 ?'<span style="color:var(--text-secondary);font-size:12px" title="本科目（如 CAD）不设安全准入考试，该项不计入综合总评">—</span>'
 :(st.theoryAvg>0?theoryLabel+st.theoryAvg+'分':'<span style="color:var(--text-secondary);font-size:12px" title="安全准入分取'+theoryType+'考核的最高分，学生完成'+theoryType+'章节答题后自动获取；普通章节答题不计入安全准入分">未完成'+theoryType+'</span>');
-html+='<tr><td><strong>'+esc(st.name)+'</strong>'+(isNewlyAddedStudent(st)?' <span style="font-size:10px;padding:1px 5px;border-radius:8px;background:#e8f5e9;color:#2e7d32;white-space:nowrap">🆕 新添加</span>':'')+'</td><td>'+esc(st.cls)+'</td><td><span style="font-size:12px">'+stCatInfo.icon+' '+esc(stCatInfo.name)+'</span></td><td>'+theoryCell+'</td><td>'+processWeighted+'分 <small style="color:var(--text-secondary)">(原'+st.processAvg+')</small></td><td>'+finalWeighted+'分 <small style="color:var(--text-secondary)">(原'+st.finalAvg+')</small></td><td><span class="score-badge '+grade+'">'+st.composite+'分</span></td><td>'+alertHtml+'</td><td><button class="btn btn-outline btn-sm" onclick="openTrainingEdit(\''+escJs(st.id)+'\')">✏️</button> <button class="btn btn-outline btn-sm" onclick="viewTrainingCharts(\''+escJs(st.id)+'\')">📊</button> <button class="btn btn-outline btn-sm" title="AI 评语" onclick="aiOpenStudent(\''+escJs(st.id)+'\')">🤖</button> <button class="btn btn-danger btn-sm" onclick="deleteTrainingStudent(\''+escJs(st.id)+'\',\''+escJs(st.name)+'\')">🗑️</button></td></tr>' /* t11.0：XSS/注入转义 */
+html+='<tr><td><strong>'+esc(st.name)+'</strong>'+(isNewlyAddedStudent(st)?' <span style="font-size:10px;padding:1px 5px;border-radius:8px;background:#e8f5e9;color:#2e7d32;white-space:nowrap">🆕 新添加</span>':'')+'</td><td>'+esc(st.cls)+'</td><td>'+esc(getStudentSchool(st.id))+'</td><td><span style="font-size:12px">'+stCatInfo.icon+' '+esc(stCatInfo.name)+'</span></td><td>'+theoryCell+'</td><td>'+processWeighted+'分 <small style="color:var(--text-secondary)">(原'+st.processAvg+')</small></td><td>'+finalWeighted+'分 <small style="color:var(--text-secondary)">(原'+st.finalAvg+')</small></td><td><span class="score-badge '+grade+'">'+st.composite+'分</span></td><td>'+alertHtml+'</td><td><button class="btn btn-outline btn-sm" onclick="openTrainingEdit(\''+escJs(st.id)+'\')">✏️</button> <button class="btn btn-outline btn-sm" onclick="viewTrainingCharts(\''+escJs(st.id)+'\')">📊</button> <button class="btn btn-outline btn-sm" title="AI 评语" onclick="aiOpenStudent(\''+escJs(st.id)+'\')">🤖</button> <button class="btn btn-danger btn-sm" onclick="deleteTrainingStudent(\''+escJs(st.id)+'\',\''+escJs(st.name)+'\')">🗑️</button></td></tr>' /* t11.0：XSS/注入转义 */
 });
 html+='</tbody></table></div>';
 if(totalPages>1){
@@ -2675,7 +2769,7 @@ aoa.push([]);
 var expHasSafety=courseHasSafetyExam(adminConfig.category);
 /* v18：阶段只解析一次，表头 / 行值 / 列宽 / 样式四处必须同源，否则 !cols、!merges 会错位 */
 var expStages=getStages(adminId);
-var mainHeaders=['姓名','班级','专业大类',expHasSafety?('安全准入('+wT2+'%)'):'安全准入(本科目不设)','过程平均分(原始)','过程得分('+wP2+'%折算)','实训平均分(原始)','实训得分('+wF2+'%折算)','综合总评','预警状态'];
+var mainHeaders=['姓名','班级','学校','专业大类',expHasSafety?('安全准入('+wT2+'%)'):'安全准入(本科目不设)','过程平均分(原始)','过程得分('+wP2+'%折算)','实训平均分(原始)','实训得分('+wF2+'%折算)','综合总评','预警状态'];
 expStages.forEach(function(stage){
 processDims.forEach(function(dim){mainHeaders.push(stage.name+'-'+dim);});
 });
@@ -2685,24 +2779,24 @@ aoa.push(mainHeaders);
 students.forEach(function(st){
 var stCat=getStudentCategory(st.id);
 var stCatInfo=CATEGORIES.find(function(c){return c.id===stCat})||{name:'未设'};
-var row=[st.name,st.cls,stCatInfo.name,expHasSafety?st.theoryAvg:'—',st.processAvg,Math.round(st.processAvg*wP2/100),st.finalAvg,Math.round(st.finalAvg*wF2/100),st.composite,st.alert?'重点辅导':'正常'];
+var row=[st.name,st.cls,getStudentSchool(st.id),stCatInfo.name,expHasSafety?st.theoryAvg:'—',st.processAvg,Math.round(st.processAvg*wP2/100),st.finalAvg,Math.round(st.finalAvg*wF2/100),st.composite,st.alert?'重点辅导':'正常'];
 expStages.forEach(function(stage){
 var slot=stage.id;
 processDims.forEach(function(dim){
 var bucket=(st.data&&st.data.dailyScores&&st.data.dailyScores[slot])||null;
 var val=(bucket&&bucket[dim])||'';
-row.push(val?'('+GRADE_MAP[val]+')':'未评(0)');
+row.push(val?'('+gradeScoreOf(adminId,val)+')':'未评(0)');
 });
 });
 finalDims.forEach(function(dim){
 var val=(st.data&&st.data.finalScores&&st.data.finalScores[dim])||'';
-row.push(val?val+'('+GRADE_MAP[val]+')':'未评(0)');
+row.push(val?val+'('+gradeScoreOf(adminId,val)+')':'未评(0)');
 });
 row.push(generateComment(st)); /* t11.0：个性化文字评价 */
 aoa.push(row);
 });
 aoa.push([]);
-aoa.push(['等级说明：A(95分) B(85分) C(70分) D(50分)']);
+aoa.push(['等级说明：'+getGradeTiers(adminId).map(function(t){return t.name+'('+t.score+'分)'}).join(' ')]);
 aoa.push(['综合总评 = '+(courseHasSafetyExam(adminConfig.category)?'安全准入平均分×'+wT2+'% + ':'')+'过程周平均分×'+wP2+'% + 实训考核平均分×'+wF2+'%']);
 var ws=XLSX.utils.aoa_to_sheet(aoa);
 var totalCols=mainHeaders.length;
@@ -2712,7 +2806,7 @@ titleMerges.push({s:{r:1,c:0},e:{r:1,c:totalCols-1}});
 titleMerges.push({s:{r:aoa.length-2,c:0},e:{r:aoa.length-2,c:totalCols-1}});
 titleMerges.push({s:{r:aoa.length-1,c:0},e:{r:aoa.length-1,c:totalCols-1}});
 ws['!merges']=titleMerges;
-var colWidths=[{wch:10},{wch:10},{wch:14},{wch:14},{wch:14},{wch:14},{wch:14},{wch:10},{wch:10}];
+var colWidths=[{wch:10},{wch:10},{wch:22},{wch:14},{wch:14},{wch:14},{wch:14},{wch:14},{wch:10},{wch:10}];
 expStages.forEach(function(stage){
 processDims.forEach(function(dim){colWidths.push({wch:12});});
 });
@@ -2784,7 +2878,9 @@ showToast('Excel导出成功','success');
 /* t11.0：个性化文字评价生成（基于安全准入分/过程维度/实训维度/预警状态） */
 function generateComment(st){
 /* 缺陷修复：原版此处引用未声明的全局 processDims，导出 Excel 时会抛 ReferenceError */
-var processDims=(function(){try{var aid=getCourseFilterAdminId()||(currentUser&&currentUser.id)||'guoxiaohu';return getAdminCourseConfig(aid).processDims||DEFAULT_PROCESS_DIMS;}catch(e){return DEFAULT_PROCESS_DIMS;}})();
+var aid=getCourseFilterAdminId()||(currentUser&&currentUser.id)||'guoxiaohu';
+var lowName=lowestGradeName(aid);
+var processDims=(function(){try{return getAdminCourseConfig(aid).processDims||DEFAULT_PROCESS_DIMS;}catch(e){return DEFAULT_PROCESS_DIMS}})();
 var parts=[];
 // 安全准入分
 if(st.theoryAvg>=90)parts.push('安全准入知识扎实，安全意识强');
@@ -2794,14 +2890,14 @@ else if(st.theoryAvg>0)parts.push('安全准入知识薄弱，需在教师指导
 else parts.push('尚未完成安全准入');
 // 过程维度：找最弱/最强
 var dimAcc={}, worstDim=null, worstAvg=100, bestDim=null, bestAvg=0;
-if(st.data&&st.data.dailyScores){getStages().forEach(function(sg){var ds=st.data.dailyScores[sg.id]||{};processDims.forEach(function(dim){if(dim==='自评'||dim==='互评')return;if(!dimAcc[dim])dimAcc[dim]={s:0,c:0};var g=GRADE_MAP[ds[dim]]||0;if(g>0){dimAcc[dim].s+=g;dimAcc[dim].c++;}});});}
+if(st.data&&st.data.dailyScores){getStages().forEach(function(sg){var ds=st.data.dailyScores[sg.id]||{};processDims.forEach(function(dim){if(dim==='自评'||dim==='互评')return;if(!dimAcc[dim])dimAcc[dim]={s:0,c:0};var g=gradeScoreOf(aid,ds[dim]);if(g>0){dimAcc[dim].s+=g;dimAcc[dim].c++;}});});}
 Object.keys(dimAcc).forEach(function(dim){if(dimAcc[dim].c===0)return;var avg=Math.round(dimAcc[dim].s/dimAcc[dim].c);if(avg<worstAvg){worstAvg=avg;worstDim=dim;}if(avg>bestAvg){bestAvg=avg;bestDim=dim;}});
 if(worstDim&&worstAvg<70)parts.push('日常环节「'+worstDim+'」为薄弱项（均'+worstAvg+'分），需重点改进');
 if(bestDim&&bestAvg>=85)parts.push('「'+bestDim+'」表现突出（均'+bestAvg+'分），值得肯定');
 // 实训维度
-if(st.data&&st.data.finalScores){var fw=null,fwv=100,fb=null,fbv=0;Object.keys(st.data.finalScores).forEach(function(dim){var g=GRADE_MAP[st.data.finalScores[dim]]||0;if(g>0&&g<fwv){fwv=g;fw=dim;}if(g>fbv){fbv=g;fb=dim;}});if(fw&&fwv<70)parts.push('周末实训「'+fw+'」环节需加强实操训练');if(fb&&fbv>=90)parts.push('实训「'+fb+'」环节能力突出');}
+if(st.data&&st.data.finalScores){var fw=null,fwv=100,fb=null,fbv=0;Object.keys(st.data.finalScores).forEach(function(dim){var g=gradeScoreOf(aid,st.data.finalScores[dim]);if(g>0&&g<fwv){fwv=g;fw=dim;}if(g>fbv){fbv=g;fb=dim;}});if(fw&&fwv<70)parts.push('周末实训「'+fw+'」环节需加强实操训练');if(fb&&fbv>=90)parts.push('实训「'+fb+'」环节能力突出');}
 // 预警
-if(st.alert)parts.push('⚠️ 该生存在多项D级评价，需教师重点关注并进行一对一辅导');
+if(st.alert)parts.push('⚠️ 该生存在多项'+lowName+'级评价，需教师重点关注并进行一对一辅导');
 // 综合评价
 if(st.composite>=90)parts.push('综合素质优秀，具备担任小组长能力');
 else if(st.composite>=80)parts.push('整体表现良好，继续提升实操技能可达到优秀');
@@ -2847,14 +2943,14 @@ var chartLabels=chartStages.map(function(s){return s.name});
 var dailyAvgs=[];
 chartSlotIds.forEach(function(slot){
 var dayData=(st.data&&st.data.dailyScores&&st.data.dailyScores[slot])||{};
-dailyAvgs.push(calcDailyAvg(dayData,processDims));
+dailyAvgs.push(calcDailyAvg(dayData,processDims,adminId));
 });
 trainingLineChart=new Chart(lineCtx,{type:'line',data:{labels:chartLabels,datasets:[{label:studentLabel+' 阶段平均分',data:dailyAvgs,borderColor:'#1a73e8',backgroundColor:'rgba(26,115,232,0.1)',fill:true,tension:0.3,pointRadius:5,pointBackgroundColor:'#1a73e8'}]},options:{responsive:true,maintainAspectRatio:true,plugins:{title:{display:true,text:studentLabel+' 过程性平均分趋势',font:{size:14,weight:'bold'},color:'#1a237e',padding:{bottom:10}},legend:{labels:{font:{size:11}}}},scales:{y:{min:0,max:100,ticks:{stepSize:10}}}}});
 
 var radarValues=[];
 finalDims.forEach(function(dim){
 var val=(st.data&&st.data.finalScores&&st.data.finalScores[dim])||'';
-radarValues.push(GRADE_MAP[val]!==undefined?GRADE_MAP[val]:0);
+radarValues.push(gradeScoreOf(adminId,val));
 });
 trainingRadarChart=new Chart(radarCtx,{type:'radar',data:{labels:finalDims,datasets:[{label:studentLabel+' 实训考核',data:radarValues,borderColor:'#e91e63',backgroundColor:'rgba(233,30,99,0.15)',borderWidth:2,pointBackgroundColor:'#e91e63'}]},options:{responsive:true,maintainAspectRatio:true,plugins:{title:{display:true,text:studentLabel+' 周末实训考核维度',font:{size:14,weight:'bold'},color:'#1a237e',padding:{bottom:10}},legend:{labels:{font:{size:11}}}},scales:{r:{min:0,max:100,ticks:{stepSize:20}}}}});
 
@@ -2862,7 +2958,7 @@ var dimColors=['#1a73e8','#0d904f','#ff6d00','#d93025','#7b1fa2','#00838f'];
 var dimDatasets=processDims.map(function(dim,idx){
 var values=chartSlotIds.map(function(slot){
 var dayData=(st.data&&st.data.dailyScores&&st.data.dailyScores[slot])||{};
-return GRADE_MAP[dayData[dim]]!==undefined?GRADE_MAP[dayData[dim]]:0;
+return gradeScoreOf(adminId,dayData[dim]);
 });
 return {label:dim,data:values,borderColor:dimColors[idx%dimColors.length],backgroundColor:'transparent',tension:0.3,pointRadius:3};
 });
@@ -3037,7 +3133,7 @@ var _dlIds=_dlStages.map(function(s){return s.id});
 var _dlLabels=_dlStages.map(function(s){return s.name});
 var dailyAvgs=_dlIds.map(function(slot){
 var dayData=(st.data&&st.data.dailyScores&&st.data.dailyScores[slot])||{};
-return calcDailyAvg(dayData,processDims);
+return calcDailyAvg(dayData,processDims,adminId);
 });
 var lineCanvas=document.createElement('canvas');
 lineCanvas.width=chartW*dpr;lineCanvas.height=chartH*dpr;
@@ -3048,7 +3144,7 @@ lineChart.destroy();
 var radarValues=[];
 finalDims.forEach(function(dim){
 var val=(st.data&&st.data.finalScores&&st.data.finalScores[dim])||'';
-radarValues.push(GRADE_MAP[val]!==undefined?GRADE_MAP[val]:0);
+radarValues.push(gradeScoreOf(adminId,val));
 });
 var radarCanvas=document.createElement('canvas');
 radarCanvas.width=chartW*dpr;radarCanvas.height=chartH*dpr;
@@ -3060,7 +3156,7 @@ var dimColors=['#1a73e8','#0d904f','#ff6d00','#d93025','#7b1fa2','#00838f'];
 var dimDatasets=processDims.map(function(dim,idx){
 var values=_dlIds.map(function(slot){
 var dayData=(st.data&&st.data.dailyScores&&st.data.dailyScores[slot])||{};
-return GRADE_MAP[dayData[dim]]!==undefined?GRADE_MAP[dayData[dim]]:0;
+return gradeScoreOf(adminId,dayData[dim]);
 });
 return {label:dim,data:values,borderColor:dimColors[idx%dimColors.length],backgroundColor:'transparent',tension:0.3,pointRadius:3};
 });
@@ -3517,6 +3613,7 @@ var finalScores=td.finalScores||{};
 var reports=[];
 var courseFilterAdmin=getCourseFilterAdminId();
 var adminId=courseFilterAdmin||(currentUser?currentUser.id:'guoxiaohu');
+var lowName=lowestGradeName(adminId),highName=highestGradeName(adminId);
 var adminConfig=getAdminCourseConfig(adminId);
 var processDims=adminConfig.processDims||DEFAULT_PROCESS_DIMS;
 var finalDims=adminConfig.finalDims||DEFAULT_FINAL_DIMS;
@@ -3525,10 +3622,10 @@ var finalDimWeights=getFinalDimWeights(adminId);
 var anaStages=getStages(adminId);
 var anaIds=anaStages.map(function(s){return s.id});
 var anaNames=anaStages.map(function(s){return s.name});
-var dailyAvgs=anaIds.map(function(slot){return calcDailyAvg(dailyScores[slot],processDims)});
+var dailyAvgs=anaIds.map(function(slot){return calcDailyAvg(dailyScores[slot],processDims,adminId)});
 var theoryAvg=getTheoryAvg(st.id);
-var processAvg=calcWeeklyProcessAvg(dailyScores,processDims,anaIds);
-var finalAvg=calcFinalAvg(finalScores,finalDims,finalDimWeights);
+var processAvg=calcWeeklyProcessAvg(dailyScores,processDims,anaIds,adminId);
+var finalAvg=calcFinalAvg(finalScores,finalDims,finalDimWeights,adminId);
 var composite=calcComposite(theoryAvg,processAvg,finalAvg,adminWeights);
 var risingDays=0,fallingDays=0;
 for(var i=1;i<dailyAvgs.length;i++){
@@ -3568,7 +3665,7 @@ var dimSum=0,dimCount=0;
 anaIds.forEach(function(slot){
 var dayData=dailyScores[slot]||{};
 var grade=dayData[dim]||'';
-dimSum+=(GRADE_MAP[grade]!==undefined?GRADE_MAP[grade]:0);
+dimSum+=gradeScoreOf(adminId,grade);
 dimCount++;
 });
 var dimAvg=Math.round(dimSum/dimCount);
@@ -3584,7 +3681,7 @@ reports.push({icon:'🔧',type:'warning',title:'过程性薄弱维度',text:'该
 var finalStrongDims=[],finalWeakDims=[];
 finalDims.forEach(function(dim){
 var val=finalScores[dim]||'';
-var score=GRADE_MAP[val]!==undefined?GRADE_MAP[val]:0;
+var score=gradeScoreOf(adminId,val);
 if(score>=85)finalStrongDims.push({name:dim,score:score,grade:val});
 if(score<65)finalWeakDims.push({name:dim,score:score,grade:val});
 });
@@ -3598,28 +3695,28 @@ var dAlertDays=[];
 anaIds.forEach(function(slot,si){
 var dayData=dailyScores[slot]||{};
 var dCount=0;
-processDims.forEach(function(dim){if(dayData[dim]==='D')dCount++});
+processDims.forEach(function(dim){if(dayData[dim]===lowName)dCount++});
 if(dCount>=2)dAlertDays.push(anaNames[si]);
 });
 if(dAlertDays.length>0){
-reports.push({icon:'🔴',type:'danger',title:'预警：存在多个D等级',text:dAlertDays.join('、')+'存在≥2个D等级的情况，该生在安全规范或操作流程方面可能存在隐患，需重点辅导！'});
+reports.push({icon:'🔴',type:'danger',title:'预警：存在多个'+lowName+'等级',text:dAlertDays.join('、')+'存在≥2个'+lowName+'等级的情况，该生在安全规范或操作流程方面可能存在隐患，需重点辅导！'});
 }
 var allAGrades=0,totalGrades=0;
 anaIds.forEach(function(slot){
 var dayData=dailyScores[slot]||{};
 processDims.forEach(function(dim){
-if(dayData[dim]==='A')allAGrades++;
+if(dayData[dim]===highName)allAGrades++;
 totalGrades++;
 });
 });
 finalDims.forEach(function(dim){
-if(finalScores[dim]==='A')allAGrades++;
+if(finalScores[dim]===highName)allAGrades++;
 totalGrades++;
 });
 if(allAGrades===totalGrades&&totalGrades>0){
-reports.push({icon:'🏅',type:'success',title:'全A优秀学员',text:'该生所有评价维度均为A等级，表现极为出色，可作为班级学习标杆！'});
+reports.push({icon:'🏅',type:'success',title:'全'+highName+'优秀学员',text:'该生所有评价维度均为'+highName+'等级，表现极为出色，可作为班级学习标杆！'});
 }else if(allAGrades>=totalGrades*0.6&&totalGrades>0){
-reports.push({icon:'⭐',type:'success',title:'优秀表现',text:'该生'+Math.round(allAGrades/totalGrades*100)+'%的评价维度达到A等级，表现优秀，继续保持！'});
+reports.push({icon:'⭐',type:'success',title:'优秀表现',text:'该生'+Math.round(allAGrades/totalGrades*100)+'%的评价维度达到'+highName+'等级，表现优秀，继续保持！'});
 }
 if(composite>=90){
 reports.push({icon:'🎉',type:'success',title:'综合总评优秀',text:'综合总评'+composite+'分，达到优秀水平！安全准入'+theoryAvg+'分、过程'+processAvg+'分、实训'+finalAvg+'分，各方面均衡发展。'});
@@ -3658,6 +3755,9 @@ st.data=td;
 $('trainingEditTitle').textContent='✏️ 编辑实训成绩 - '+st.name+' ('+st.cls+')';
 var editStages=getStages(adminId);
 ensureStageShells(td,adminId,editStages); /* v18：先补空壳，保证新加阶段也能录入 */
+var editTiers=getGradeTiers(adminId);
+function tierIndexOf(g){for(var ti=0;ti<editTiers.length;ti++){if(editTiers[ti].name===g)return ti}return -1}
+function gradeTierOptionsHtml(val){var h='<option value="" '+(!val?'selected':'')+'>未评(0)</option>';editTiers.forEach(function(t){h+='<option value="'+esc(t.name)+'" '+(val===t.name?'selected':'')+'>'+esc(t.name)+'('+t.score+')</option>'});return h}
 var html='<div style="margin-bottom:16px"><h4 style="margin-bottom:12px;color:var(--primary)">📅 过程性考核（'+editStages.length+' 个阶段）</h4>';
 editStages.forEach(function(stage){
 var day=stage.id;
@@ -3665,7 +3765,7 @@ html+='<div class="training-day-block"><h5>📌 '+esc(stage.name)+'</h5><div cla
 processDims.forEach(function(dim){
 var val=(td.dailyScores[day]&&td.dailyScores[day][dim])||'';
 var dimAttr=esc(dim); /* t11.0：转义，防止指标名注入属性 */
-html+='<div class="grade-item"><label>'+esc(dim)+'</label><select class="training-grade-select '+(val?'grade-'+val.toLowerCase():'grade-empty')+'" onchange="updateTrainingPreview();syncGradeStyle(this)" data-slot="'+day+'" data-day="'+day+'" data-dim="'+dimAttr+'"><option value="" '+(!val?'selected':'')+'>未评(0)</option><option value="A" '+(val==='A'?'selected':'')+'>A(95)</option><option value="B" '+(val==='B'?'selected':'')+'>B(85)</option><option value="C" '+(val==='C'?'selected':'')+'>C(70)</option><option value="D" '+(val==='D'?'selected':'')+'>D(50)</option></select></div>';
+html+='<div class="grade-item"><label>'+esc(dim)+'</label><select class="training-grade-select '+(val?('grade-t'+tierIndexOf(val)):'grade-empty')+'" onchange="updateTrainingPreview();syncGradeStyle(this)" data-slot="'+day+'" data-day="'+day+'" data-dim="'+dimAttr+'">'+gradeTierOptionsHtml(val)+'</select></div>';
 });
 html+='</div></div>';
 });
@@ -3674,7 +3774,7 @@ html+='<div style="margin-bottom:16px"><h4 style="margin-bottom:12px;color:#e91e
 finalDims.forEach(function(dim){
 var val=td.finalScores[dim]||'';
 var dimAttr=esc(dim); /* t11.0：转义，防止指标名注入属性 */
-html+='<div class="grade-item"><label>'+esc(dim)+'</label><select class="training-grade-select '+(val?'grade-'+val.toLowerCase():'grade-empty')+'" onchange="updateTrainingPreview();syncGradeStyle(this)" data-final="true" data-dim="'+dimAttr+'"><option value="" '+(!val?'selected':'')+'>未评(0)</option><option value="A" '+(val==='A'?'selected':'')+'>A(95)</option><option value="B" '+(val==='B'?'selected':'')+'>B(85)</option><option value="C" '+(val==='C'?'selected':'')+'>C(70)</option><option value="D" '+(val==='D'?'selected':'')+'>D(50)</option></select></div>';
+html+='<div class="grade-item"><label>'+esc(dim)+'</label><select class="training-grade-select '+(val?('grade-t'+tierIndexOf(val)):'grade-empty')+'" onchange="updateTrainingPreview();syncGradeStyle(this)" data-final="true" data-dim="'+dimAttr+'">'+gradeTierOptionsHtml(val)+'</select></div>';
 });
 html+='</div></div></div>';
 html+='<div class="training-preview-box" id="trainingPreviewBox"><h4>📋 实时预览</h4><div id="trainingPreviewContent"></div></div>';
@@ -3686,7 +3786,14 @@ $('trainingEditModal').style.display='flex';
 
 function syncGradeStyle(sel){
 var v=sel.value;
-sel.className='training-grade-select '+(v?'grade-'+v.toLowerCase():'grade-empty');
+if(!v){sel.className='training-grade-select grade-empty';return}
+var aid='';
+try{aid=(typeof getCourseFilterAdminId==='function'&&getCourseFilterAdminId())||''}catch(e){}
+if(!aid)aid=(currentUser&&currentUser.id)||'';
+var tiers=getGradeTiers(aid);
+var idx=-1;
+for(var i=0;i<tiers.length;i++){if(tiers[i].name===v){idx=i;break}}
+sel.className='training-grade-select '+(idx>=0?'grade-t'+idx:'grade-empty');
 }
 
 function updateTrainingPreview(){
@@ -3720,18 +3827,19 @@ var previewDimWeights=getFinalDimWeights(adminId);
 var previewStages=getStages(adminId);
 var previewIds=previewStages.map(function(s){return s.id});
 var theoryAvg=getTheoryAvg(currentTrainingStudent);
-var processAvg=calcWeeklyProcessAvg(td.dailyScores,processDims,previewIds);
-var finalAvg=calcFinalAvg(td.finalScores,finalDims,previewDimWeights);
+var processAvg=calcWeeklyProcessAvg(td.dailyScores,processDims,previewIds,adminId);
+var finalAvg=calcFinalAvg(td.finalScores,finalDims,previewDimWeights,adminId);
 var composite=calcComposite(theoryAvg,processAvg,finalAvg,previewWeights);
-var alert=checkAlert(td.dailyScores,processDims,previewIds);
+var alert=checkAlert(td.dailyScores,processDims,previewIds,adminId);
 var grade=getCompositeGrade(composite);
 var html='';
+var previewLow=lowestGradeName(adminId);
 previewStages.forEach(function(stage){
 var dayData=td.dailyScores[stage.id]||{};
-var da=calcDailyAvg(dayData,processDims);
-var dg=calcDailyGrade(da);
-var dCount=0;processDims.forEach(function(dim){if(dayData[dim]==='D')dCount++;});
-html+='<div class="training-preview-row"><span>'+esc(stage.name)+'：平均 <b>'+da+'分</b> 等级 <b style="color:'+(dg==='A'?'#0d904f':dg==='B'?'#1a73e8':dg==='C'?'#e37400':'#d93025')+'">'+dg+'</b></span>'+(dCount>=2?' <span style="color:#d93025;font-size:11px">⚠️≥2个D</span>':'')+'</div>';
+var da=calcDailyAvg(dayData,processDims,adminId);
+var dg=calcDailyGrade(da,adminId);
+var dCount=0;processDims.forEach(function(dim){if(dayData[dim]===previewLow)dCount++});
+html+='<div class="training-preview-row"><span>'+esc(stage.name)+'：平均 <b>'+da+'分</b> 等级 <b style="color:'+gradeColorOf(adminId,dg)+'">'+dg+'</b></span>'+(dCount>=2?' <span style="color:#d93025;font-size:11px">⚠️≥2个'+esc(previewLow)+'</span>':'')+'</div>';
 });
 var stCourse=getStudentCourse(currentTrainingStudent);
 var theoryType='电工安全',previewNoSafety=false;
@@ -3746,7 +3854,7 @@ html+='<div class="training-preview-row" style="border-top:1px solid var(--borde
 html+='<div class="training-preview-row"><span>📅 过程周平均分（'+Math.round(previewWeights.process)+'%权重）：<b>'+processAvg+'分</b> → 折算 <b>'+Math.round(processAvg*previewWeights.process/100)+'分</b></span></div>';
 html+='<div class="training-preview-row"><span>🔧 实训考核平均分（'+Math.round(previewWeights.final)+'%权重）：<b>'+finalAvg+'分</b> → 折算 <b>'+Math.round(finalAvg*previewWeights.final/100)+'分</b></span></div>';
 html+='<div class="training-preview-row" style="font-size:15px;font-weight:700;padding-top:8px;border-top:2px solid var(--primary);margin-top:6px"><span>🏆 综合总评：<span class="score-badge '+grade+'">'+composite+'分</span></span></div>';
-if(alert)html+='<div class="training-alert">🔴 预警：该生存在某天≥2个D的情况，需重点辅导！</div>';
+if(alert)html+='<div class="training-alert">🔴 预警：该生存在某天≥2个'+esc(previewLow)+'的情况，需重点辅导！</div>';
 var pc=$('trainingPreviewContent');if(pc)pc.innerHTML=html;
 }
 
@@ -3809,32 +3917,34 @@ showToast('已删除学生「'+studentName+'」的实训考核数据','success')
 }
 
 function login(){
-var n=$('studentName').value.trim(),c=$('studentClass').value.trim();
+var n=$('studentName').value.trim(),c=$('studentClass').value.trim(),s=$('studentSchool').value.trim();
 if(!n){showToast('请输入姓名','error');return}if(!c){showToast('请输入班级','error');return}
+if(!s){showToast('请输入所在学校','error');return} /* v20：学校必填 */
 rememberClassName(c); /* t11.0-AI：记住学生填过的班级，管理员端班级下拉框可直接选用 */
+rememberSchoolName(s); /* v20：记住学校，登录页候选与管理端筛选直接可用 */
 var userPins={},registeredNames=[];
 try{userPins=JSON.parse(strg.getItem('plc_user_pins'))||{}}catch(e){userPins={}}
 try{registeredNames=JSON.parse(strg.getItem('plc_user_names'))||[]}catch(e){registeredNames=[]}
 if(!userPins[n]&&registeredNames.indexOf(n)>=0){
 userPins[n]=hashPin('0000'); /* t11.0：默认密码哈希化存储 */
 safeSetItem('plc_user_pins',JSON.stringify(userPins));
-showPinModal('🔐 验证密码','欢迎回来，'+n+'！请输入你的4位密码验证身份（默认密码0000）',false,n,c);
+showPinModal('🔐 验证密码','欢迎回来，'+n+'！请输入你的4位密码验证身份（默认密码0000）',false,n,c,s);
 }else if(userPins[n]){
-showPinModal('🔐 验证密码','欢迎回来，'+n+'！请输入你的4位密码验证身份（若你不是这位同学，请返回重新输入姓名）',false,n,c);
+showPinModal('🔐 验证密码','欢迎回来，'+n+'！请输入你的4位密码验证身份（若你不是这位同学，请返回重新输入姓名）',false,n,c,s);
 }else{
-showPinModal('🔐 设置密码','首次登录请设置4位数字密码，下次登录时用于验证身份',true,n,c);
+showPinModal('🔐 设置密码','首次登录请设置4位数字密码，下次登录时用于验证身份',true,n,c,s);
 }
 }
 
 var pinModalCallback=null;
-function showPinModal(title,desc,isSet,name,cls){
+function showPinModal(title,desc,isSet,name,cls,school){ /* v20：school 必填透传 */
 $('pinModalTitle').textContent=title;
 $('pinModalDesc').textContent=desc;
 $('pinError').textContent='';
 for(var i=1;i<=4;i++){var inp=$('pinInput'+i);if(inp){inp.value='';inp.style.borderColor='var(--border)'}}
 $('pinModal').style.display='flex';
 setTimeout(function(){var f=$('pinInput1');if(f)f.focus()},100);
-pinModalCallback={isSet:isSet,name:name,cls:cls};
+pinModalCallback={isSet:isSet,name:name,cls:cls,school:school};
 }
 function closePinModal(){
 $('pinModal').style.display='none';pinModalCallback=null;
@@ -3866,10 +3976,10 @@ var registeredNames=safeJsonParse(strg.getItem('plc_user_names'),[]);
 userPins[cb.name]=hashPin(pin); /* t11.0：哈希存储，不再明文 */
 safeSetItem('plc_user_pins',JSON.stringify(userPins));
 if(registeredNames.indexOf(cb.name)<0){registeredNames.push(cb.name);safeSetItem('plc_user_names',JSON.stringify(registeredNames))}
-currentUser={name:cb.name,cls:cb.cls,id:cb.name};
+currentUser={name:cb.name,cls:cb.cls,school:cb.school,id:cb.name};
 cloudWrite('user_pins',{pins:userPins,names:registeredNames},null,true);
 closePinModal();
-doLogin(cb.name,cb.cls);
+doLogin(cb.name,cb.cls,cb.school);
 }else{
 var stored=userPins[cb.name];
 var valid=false;
@@ -3882,7 +3992,7 @@ valid=(stored===hashPin(pin));
 }
 if(valid){
 closePinModal();
-doLogin(cb.name,cb.cls);
+doLogin(cb.name,cb.cls,cb.school);
 }else{
 $('pinError').textContent='密码错误，请重试';
 for(var i=1;i<=4;i++){var inp=$('pinInput'+i);if(inp){inp.value='';inp.style.borderColor='#d93025'}}
@@ -3890,9 +4000,10 @@ var f=$('pinInput1');if(f)f.focus();
 }
 }
 }
-function doLogin(name,cls){
-currentUser={name:name,cls:cls,id:name};
+function doLogin(name,cls,school){
+currentUser={name:name,cls:cls,school:school||getStudentSchool(name),id:name};
 safeSetItem('plc_user',JSON.stringify(currentUser));
+setStudentSchool(name,currentUser.school); /* v20：落库 + 同步云端 */
 $('headerUser').style.display='flex';$('userNameHeader').textContent=name;$('userAvatarHeader').textContent=name.charAt(0);
 $('studentChangePwdBtn').style.display='inline-flex';
 $('navTabs').style.display='flex';
@@ -4042,7 +4153,7 @@ strg.removeItem('plc_user');
 adminStudentMap={};adminAllRecords=[];
 $('headerUser').style.display='none';$('navTabs').style.display='none';
 document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});$('pageLogin').classList.add('active');
-$('studentName').value='';$('studentClass').value='';
+$('studentName').value='';$('studentClass').value='';$('studentSchool').value='';
 $('adminUser').value='';$('adminPass').value='';
 showStudentLogin();
 var tabs=$('navTabs');
@@ -4101,7 +4212,7 @@ var stCourse=getStudentCourse(currentUser.id);
 var courseName='';
 if(stCourse){var admins=loadAdmins();courseName=admins[stCourse]?admins[stCourse].courseName:'';}
 var infoEl=$('studentCourseInfo');
-if(infoEl)infoEl.innerHTML=stCat?'当前专业：'+stCatInfo.icon+' '+stCatInfo.name+'类'+(courseName?' · 📚 '+courseName:''):'尚未选择专业大类';
+if(infoEl)infoEl.innerHTML=(currentUser.school?'🏫 '+esc(currentUser.school)+' · ':'')+(stCat?'当前专业：'+stCatInfo.icon+' '+stCatInfo.name+'类'+(courseName?' · 📚 '+courseName:''):'尚未选择专业大类');
 }
 var h=getHistory(),tq=h.length,tqN=0,tC=0;
 h.forEach(function(r){tqN+=(r.tQ||0);tC+=(r.cC||0)});
@@ -4331,8 +4442,8 @@ var h=getHistory(),ds=getDimScores(),avg=h.length?Math.round(h.reduce(function(s
 var totalQ=h.reduce(function(s,r){return s+(r.tQ||0)},0),totalC=h.reduce(function(s,r){return s+(r.cC||0)},0);
 var accuracy=totalQ>0?Math.round(totalC/totalQ*100):0;
 var level=avg>=90?'优秀学员':avg>=80?'良好学员':avg>=60?'合格学员':'待提升学员';
-var nameEsc=esc(currentUser.name),clsEsc=esc(currentUser.cls); /* t11.0：XSS转义 */
-var html='<div class="profile-card fade-in"><div class="profile-header"><div class="avatar">'+esc(currentUser.name.charAt(0))+'</div><div class="profile-info"><h3>'+nameEsc+'</h3><p>'+clsEsc+' · '+level+'</p></div></div><div class="profile-badges"><span class="profile-badge">📝 答题 '+h.length+' 次</span><span class="profile-badge">✅ 正确率 '+accuracy+'%</span><span class="profile-badge">📊 平均分 '+avg+'</span></div></div>';
+var nameEsc=esc(currentUser.name),clsEsc=esc(currentUser.cls),schoolEsc=esc(getStudentSchool(currentUser.id)); /* t11.0：XSS转义 */
+var html='<div class="profile-card fade-in"><div class="profile-header"><div class="avatar">'+esc(currentUser.name.charAt(0))+'</div><div class="profile-info"><h3>'+nameEsc+'</h3><p>'+schoolEsc+' · '+clsEsc+' · '+level+'</p></div></div><div class="profile-badges"><span class="profile-badge">📝 答题 '+h.length+' 次</span><span class="profile-badge">✅ 正确率 '+accuracy+'%</span><span class="profile-badge">📊 平均分 '+avg+'</span></div></div>';
 html+='<div class="card fade-in profile-section"><h3><span class="icon-box" style="background:var(--primary-light);color:var(--primary)">🎯</span> 能力雷达图</h3><div class="radar-chart-container"><canvas id="radarCanvas"></canvas></div></div>';
 html+='<div class="card fade-in profile-section"><h3><span class="icon-box" style="background:#e8f5e9;color:#2e7d32">📊</span> 维度分析</h3><div class="dimension-grid">';
 dims.forEach(function(d){
@@ -4707,6 +4818,7 @@ if(r.recordType==='admins_config'||r.recordType==='admin_config'||r.recordType==
 if(r.recordType==='student_course')return!targetAdminId||r.data.courseId===targetAdminId;
 if(r.recordType==='eval_score')return true;
 if(r.recordType==='user_pins')return true;
+if(r.recordType==='student_school')return true; /* v20 */
 if(r.recordType==='quiz_result')return true;
 if(r.recordType==='student_category')return true;
 return false;
@@ -4764,9 +4876,10 @@ var studentName=d.studentName||'未知';
 var studentClass=d.studentClass||'未知';
 var key=studentName;
 if(!adminStudentMap[key]){
-adminStudentMap[key]={name:studentName,cls:studentClass,id:studentName,records:[],totalQuiz:0,totalQ:0,totalC:0,totalSc:0};
+adminStudentMap[key]={name:studentName,cls:studentClass,school:(d.studentSchool&&d.studentSchool!=='未知')?d.studentSchool:'未知',id:studentName,records:[],totalQuiz:0,totalQ:0,totalC:0,totalSc:0};
 }else{
 if(adminStudentMap[key].cls==='未知'&&studentClass!=='未知'){adminStudentMap[key].cls=studentClass}
+if(adminStudentMap[key].school==='未知'&&d.studentSchool&&d.studentSchool!=='未知'){adminStudentMap[key].school=d.studentSchool}
 }
 adminStudentMap[key].records.push(cr);
 adminStudentMap[key].totalQuiz++;
@@ -4853,7 +4966,7 @@ var localCourse=strg.getItem('plc_student_course_'+name);
 var cloudCourse=studentCourseMap[name]?studentCourseMap[name].courseId:null;
 var savedCourse=localCourse||cloudCourse;
 if(savedCourse&&savedCourse!==currentAdminId)return;
-adminStudentMap[name]={name:name,cls:'未知',id:name,records:[],totalQuiz:0,totalQ:0,totalC:0,totalSc:0};
+adminStudentMap[name]={name:name,cls:'未知',school:'未知',id:name,records:[],totalQuiz:0,totalQ:0,totalC:0,totalSc:0};
 });
 Object.keys(allPins).forEach(function(pid){
 if(adminIds[pid])return;
@@ -4862,13 +4975,13 @@ var localCourse=strg.getItem('plc_student_course_'+pid);
 var cloudCourse=studentCourseMap[pid]?studentCourseMap[pid].courseId:null;
 var savedCourse=localCourse||cloudCourse;
 if(savedCourse&&savedCourse!==currentAdminId)return;
-adminStudentMap[pid]={name:pid,cls:'未知',id:pid,records:[],totalQuiz:0,totalQ:0,totalC:0,totalSc:0};
+adminStudentMap[pid]={name:pid,cls:'未知',school:'未知',id:pid,records:[],totalQuiz:0,totalQ:0,totalC:0,totalSc:0};
 });
 Object.keys(studentCourseMap).forEach(function(sid){
 if(adminIds[sid])return;
 if(adminStudentMap[sid])return;
 if(studentCourseMap[sid].courseId===currentAdminId){
-adminStudentMap[sid]={name:sid,cls:'未知',id:sid,records:[],totalQuiz:0,totalQ:0,totalC:0,totalSc:0};
+adminStudentMap[sid]={name:sid,cls:'未知',school:'未知',id:sid,records:[],totalQuiz:0,totalQ:0,totalC:0,totalSc:0};
 }
 });
 var allTraining=getTrainingData(currentAdminId);
@@ -4907,7 +5020,7 @@ if(!adminStudentMap[sid]){
 var stData=allTraining[sid];
 var stCls='未知';
 if(stData&&stData.cls)stCls=stData.cls;
-adminStudentMap[sid]={name:sid,cls:stCls,id:sid,records:[],totalQuiz:0,totalQ:0,totalC:0,totalSc:0};
+adminStudentMap[sid]={name:sid,cls:stCls,school:'未知',id:sid,records:[],totalQuiz:0,totalQ:0,totalC:0,totalSc:0};
 }
 });
 Object.keys(studentCourseMap).forEach(function(sid){
@@ -4916,12 +5029,13 @@ var localCls='未知';
 var localName=sid;
 var pins=safeJsonParse(strg.getItem('plc_user_pins'),{});
 if(pins[sid]){localName=sid}
-adminStudentMap[sid]={name:localName,cls:localCls,id:sid,records:[],totalQuiz:0,totalQ:0,totalC:0,totalSc:0};
+adminStudentMap[sid]={name:localName,cls:localCls,school:'未知',id:sid,records:[],totalQuiz:0,totalQ:0,totalC:0,totalSc:0};
 }
 });
 /* t11.0-AI：此时所有学生（含只有注册记录、还没答题的）都已在 adminStudentMap 里，
    再统一做一次班级补全，才能把新注册学生的班级正确显示出来。 */
 backfillStudentClasses();
+backfillStudentSchools(); /* v20：学校补全（存量学生归入靖边县职业教育中心） */
 Object.keys(adminStudentMap).forEach(function(sid){
 if(!allTraining[sid]){allTraining[sid]=createDefaultTrainingData(currentAdminId);}
 });
@@ -5020,13 +5134,13 @@ var day=es.day;
 if(!allTraining[sid]){allTraining[sid]=createDefaultTrainingData(currentUser.id);}
 var validScores=EVAL_DIMS.filter(function(d){return typeof (es.scores||{})[d]==='number'});
 var avg=validScores.length>0?Math.round(validScores.reduce(function(s,d){return s+es.scores[d]},0)/validScores.length):0;
-var grade=scoreToGrade(avg);
+var grade=scoreToGrade(avg,currentAdminId);
 if(!allTraining[sid].dailyScores)allTraining[sid].dailyScores={};
 if(!allTraining[sid].dailyScores[day])allTraining[sid].dailyScores[day]={}
 allTraining[sid].dailyScores[day][es.type==='self'?'自评':'互评']=grade;
 });
 saveTrainingData(allTraining,currentAdminId);
-Object.keys(adminStudentMap).forEach(function(sid){if(!adminStudentMap[sid]&&sid!=='admin'){adminStudentMap[sid]={name:'未知('+sid+')',cls:'未知',id:sid,records:[],totalQuiz:0,totalQ:0,totalC:0,totalSc:0};}});
+Object.keys(adminStudentMap).forEach(function(sid){if(!adminStudentMap[sid]&&sid!=='admin'){adminStudentMap[sid]={name:'未知('+sid+')',cls:'未知',school:'未知',id:sid,records:[],totalQuiz:0,totalQ:0,totalC:0,totalSc:0};}});
 var registeredNames=safeJsonParse(strg.getItem('plc_user_names'),[]);
 var userPins=safeJsonParse(strg.getItem('plc_user_pins'),{});
 Object.keys(adminStudentMap).forEach(function(sid){
@@ -5113,6 +5227,140 @@ function getManualClasses(){var l=safeJsonParse(strg.getItem(KNOWN_CLASSES_KEY),
 function addManualClass(cls){cls=normalizeClassName(cls);if(!cls)return'';if(CLASSES.indexOf(cls)>=0)return cls;var l=getManualClasses();if(l.indexOf(cls)<0){l.push(cls);safeSetItem(KNOWN_CLASSES_KEY,JSON.stringify(l))}return cls}
 function getStudentClassPool(){var l=safeJsonParse(strg.getItem(STUDENT_CLASS_POOL_KEY),[]);return Array.isArray(l)?l:[]}
 function rememberClassName(cls){cls=normalizeClassName(cls);if(!cls)return;var l=getStudentClassPool();if(l.indexOf(cls)<0){l.push(cls);safeSetItem(STUDENT_CLASS_POOL_KEY,JSON.stringify(l))}}
+
+/* ===================== v20：学校归属（多校推广） =====================
+   背景：系统原只服务靖边县职业教育中心，现要推广到其他学校。
+   规则：
+   1) 学生登录时「学校」必填，可从候选列表选择，也可自由输入新学校；
+   2) 每个学生的学校存 localStorage（plc_user_school_<姓名>），
+      并写一条 student_school 云端记录 + 随所有记录携带 studentSchool；
+   3) 存量学生（上线前注册、没有任何学校记录）统一归属
+      LEGACY_DEFAULT_SCHOOL（靖边县职业教育中心），管理员端可见可改。 */
+var DEFAULT_SCHOOLS=['靖边县职业教育中心'];
+var LEGACY_DEFAULT_SCHOOL='靖边县职业教育中心';
+var STUDENT_SCHOOL_POOL_KEY='plc_school_pool';
+function normalizeSchoolName(s){return (s==null?'':String(s)).replace(/\s+/g,'').trim()}
+function getStudentSchoolPool(){var l=safeJsonParse(strg.getItem(STUDENT_SCHOOL_POOL_KEY),[]);return Array.isArray(l)?l.filter(function(x){return x&&typeof x==='string'}):[]}
+function rememberSchoolName(sc){sc=normalizeSchoolName(sc);if(!sc)return;var l=getStudentSchoolPool();if(l.indexOf(sc)<0){l.push(sc);safeSetItem(STUDENT_SCHOOL_POOL_KEY,JSON.stringify(l))}}
+/* 汇总系统里真实存在过的学校：默认学校在前，其余按拼音排序 */
+function getKnownSchools(){
+var list=[],seen={};
+function push(s){s=normalizeSchoolName(s);if(!s||s==='未知'||seen[s])return;seen[s]=true;list.push(s)}
+DEFAULT_SCHOOLS.forEach(push);
+getStudentSchoolPool().forEach(push);
+try{Object.keys(adminStudentMap||{}).forEach(function(k2){var st=adminStudentMap[k2];if(st&&st.school)push(st.school)})}catch(e){}
+var rest=list.filter(function(s){return DEFAULT_SCHOOLS.indexOf(s)<0});
+rest.sort(function(a,b){return a.localeCompare(b,'zh-CN')});
+return DEFAULT_SCHOOLS.filter(function(s){return list.indexOf(s)>=0}).concat(rest);
+}
+/* 学生登录页学校候选 */
+function updateStudentSchoolDatalist(){
+var dl=document.getElementById('schoolList');
+if(!dl)return;
+dl.innerHTML=getKnownSchools().map(function(s){return '<option value="'+esc(s)+'"></option>'}).join('');
+}
+/* 管理端学校筛选下拉候选 */
+function updateSchoolFilters(){
+['adminSchoolFilter','trainingSchoolFilter'].forEach(function(filterId){
+var sel=$(filterId);if(!sel)return;
+var currentVal=sel.value||'';
+var schools=getKnownSchools();
+var html='<option value="">全部学校</option>';
+schools.forEach(function(s){html+='<option value="'+esc(s)+'">'+esc(s)+'</option>'});
+sel.innerHTML=html;
+sel.value=(schools.indexOf(currentVal)>=0)?currentVal:'';
+});
+}
+/* 读取学生学校；查不到时回落存量默认校（靖边县职业教育中心） */
+function getStudentSchool(studentId){
+if(!studentId)return'';
+try{var v=strg.getItem('plc_user_school_'+studentId);if(v)return v}catch(e){}
+return LEGACY_DEFAULT_SCHOOL;
+}
+function setStudentSchool(studentId,school){
+school=normalizeSchoolName(school);
+if(!studentId)return'';
+if(!school)school=LEGACY_DEFAULT_SCHOOL;
+var key='plc_user_school_'+studentId;
+var prev='';
+try{prev=strg.getItem(key)||''}catch(e){}
+if(prev!==school){safeSetItem(key,school)}
+rememberSchoolName(school);
+if(currentUser&&!currentUser.isAdmin&&prev!==school){
+cloudWrite('student_school',{targetStudentId:studentId,school:school});
+}
+return school;
+}
+/* 管理员改学校弹窗 */
+function showEditStudentSchoolModal(name){
+if(!currentUser||!currentUser.isAdmin){showToast('请先登录教师账号','error');return}
+var m=$('studentSchoolModal');if(!m)return;
+$('studentSchoolName').value=name;
+$('studentSchoolInput').value=getStudentSchool(name);
+var hint=$('studentSchoolHint');
+if(hint){
+var pool=getKnownSchools();
+hint.innerHTML=pool.length?'已有学校（点击填入）：'+pool.map(function(s){return '<a href="javascript:void(0)" onclick="pickStudentSchool(\''+escJs(s)+'\')" style="color:var(--primary);margin-right:8px;text-decoration:none">'+esc(s)+'</a>'}).join(''):'';
+}
+m.style.display='flex';
+setTimeout(function(){var inp=$('studentSchoolInput');if(inp){inp.focus();inp.select()}},80);
+}
+function pickStudentSchool(s){var inp=$('studentSchoolInput');if(inp){inp.value=s;inp.focus()}}
+function closeStudentSchoolModal(){var m=$('studentSchoolModal');if(m)m.style.display='none'}
+function confirmStudentSchool(){
+var name=$('studentSchoolName').value.trim();
+var school=normalizeSchoolName($('studentSchoolInput').value);
+if(!name){closeStudentSchoolModal();return}
+if(!school){showToast('请输入学校名称','error');return}
+setStudentSchool(name,school);
+/* 双保险：直接写一条 student_school 记录，保证新设备/清缓存设备也能同步到 */
+cloudWrite('student_school',{targetStudentId:name,targetStudentName:name,school:school},null,true);
+if(adminStudentMap&&adminStudentMap[name])adminStudentMap[name].school=school;
+closeStudentSchoolModal();
+renderAdminAccounts();
+try{renderAdminStudents()}catch(e){}
+try{renderTrainingTable()}catch(e2){}
+updateSchoolFilters();
+showToast('已将 '+name+' 的学校设置为 '+school,'success');
+}
+/* 管理员端学校补全：优先云端记录 → 存量学生回落默认校 */
+function backfillStudentSchools(){
+var need={};
+function put(key,sc){
+if(!key||!sc)return;
+sc=normalizeSchoolName(sc);
+if(!sc||sc==='未知')return;
+if(!adminStudentMap[key])return;
+if(!need[key])need[key]=sc;
+}
+adminAllRecords.forEach(function(cr){
+var d=cr.data;if(!d||typeof d!=='object')return;
+if(cr.recordType==='student_school'){
+if(d.targetStudentId&&d.school)put(d.targetStudentId,d.school);
+if(d.targetStudentName&&d.school)put(d.targetStudentName,d.school);
+}
+var sc=normalizeSchoolName(d.studentSchool||'');
+if(sc&&sc!=='未知'){put(d.studentName,sc);put(d.studentId,sc)}
+});
+Object.keys(need).forEach(function(k){
+var st=adminStudentMap[k];if(!st)return;
+if(!st.school||st.school==='未知'){
+st.school=need[k];
+try{strg.setItem('plc_user_school_'+k,need[k])}catch(e){}
+rememberSchoolName(need[k]);
+}
+});
+/* 存量学生（上线前注册、无任何学校记录）：统一归属靖边县职业教育中心 */
+Object.keys(adminStudentMap).forEach(function(k){
+var st=adminStudentMap[k];if(!st)return;
+if(!st.school||st.school==='未知'){
+st.school=getStudentSchool(k);
+try{strg.setItem('plc_user_school_'+k,st.school)}catch(e){}
+rememberSchoolName(st.school);
+}
+});
+}
+
 /* t11.0-AI【2026-09-20 新增】：超管登录弹窗刚打开时，本地还没有任何学生数据，
    adminStudentMap 是空的，班级下拉只剩默认几个班，于是「机电262班」这种
    实际有学生的新班级选不出来，只能手动输入。
@@ -5314,6 +5562,8 @@ sel.value=currentVal;
 });
 updateCourseFilters();
 updateStudentClassDatalist(); /* t11.0-AI：数据到达后同步学生端的班级候选 */
+updateStudentSchoolDatalist(); /* v20：同步学生端学校候选 */
+updateSchoolFilters(); /* v20：同步管理端学校筛选候选 */
 try{refreshTrainingExportClassOptions()}catch(e){} /* v17：数据到达后同步实训「导出班级」候选 */
 }
 /* 顶部统计与班级筛选口径保持一致（选「全部班级」时统计全部） */
@@ -5504,8 +5754,10 @@ var students=Object.values(adminStudentMap);
 var search=($('adminSearch')?$('adminSearch').value:'').trim().toLowerCase();
 var classFilter=getClassFilterValue('admin'); /* t11.0-AI：统一解析，排除 __custom__ 哨兵值 */
 var courseFilterAdmin=getCourseFilterAdminId();
-if(search)students=students.filter(function(st){return st.name.toLowerCase().indexOf(search)>=0||st.cls.toLowerCase().indexOf(search)>=0});
+if(search)students=students.filter(function(st){return st.name.toLowerCase().indexOf(search)>=0||st.cls.toLowerCase().indexOf(search)>=0||(getStudentSchool(st.id||st.name)||'').toLowerCase().indexOf(search)>=0});
 if(classFilter)students=students.filter(function(st){return classMatch(st.cls,classFilter)});
+var schoolFilterA=(function(){var el=$('adminSchoolFilter');return el?(el.value||'').trim():''})();
+if(schoolFilterA)students=students.filter(function(st){return getStudentSchool(st.id||st.name)===schoolFilterA});
 if(courseFilterAdmin){
 students=students.filter(function(st){
 var studentCourse=getStudentCourse(st.id||st.name);
@@ -5550,14 +5802,14 @@ var start=(page-1)*ADMIN_STUDENT_PAGE_SIZE;
 var end=Math.min(start+ADMIN_STUDENT_PAGE_SIZE,total);
 var pageStudents=students.slice(start,end);
 var html='<div style="margin-bottom:8px;font-size:13px;color:var(--text-secondary)">共 '+total+' 名学生，当前第 '+page+'/'+totalPages+' 页</div>';
-html+='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="history-table"><thead><tr><th>姓名</th><th>班级</th><th>专业大类</th><th>答题次数</th><th>答题总数</th><th>正确率</th><th>平均分</th><th>操作</th></tr></thead><tbody>';
+html+='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="history-table"><thead><tr><th>姓名</th><th>班级</th><th>学校</th><th>专业大类</th><th>答题次数</th><th>答题总数</th><th>正确率</th><th>平均分</th><th>操作</th></tr></thead><tbody>';
 pageStudents.forEach(function(st){
 var avg=st.totalQuiz>0?Math.round(st.totalSc/st.totalQuiz):0;
 var acc=st.totalQ>0?Math.round(st.totalC/st.totalQ*100):0;
 var badgeClass=avg>=90?'excellent':avg>=80?'good':avg>=60?'average':'poor';
 var stCat=getStudentCategory(st.id||st.name);
 var stCatInfo=CATEGORIES.find(function(c){return c.id===stCat})||{icon:'📚',name:'未设'};
-html+='<tr><td><strong>'+esc(st.name)+'</strong>'+(isNewlyAddedStudent(st)?' <span style="font-size:10px;padding:1px 5px;border-radius:8px;background:#e8f5e9;color:#2e7d32;white-space:nowrap">🆕 新添加</span>':'')+'</td><td>'+esc(st.cls)+'</td><td><span style="font-size:12px">'+stCatInfo.icon+' '+esc(stCatInfo.name)+'</span></td><td>'+st.totalQuiz+'次</td><td>'+st.totalQ+'题</td><td>'+acc+'%</td><td><span class="score-badge '+badgeClass+'">'+avg+'分</span></td><td><button class="btn btn-outline btn-sm" onclick="showAdminProfile(\''+escJs(st.id)+'\')">👤</button></td></tr>' /* t11.0：XSS/注入转义 */
+html+='<tr><td><strong>'+esc(st.name)+'</strong>'+(isNewlyAddedStudent(st)?' <span style="font-size:10px;padding:1px 5px;border-radius:8px;background:#e8f5e9;color:#2e7d32;white-space:nowrap">🆕 新添加</span>':'')+'</td><td>'+esc(st.cls)+'</td><td>'+esc(getStudentSchool(st.id||st.name))+'</td><td><span style="font-size:12px">'+stCatInfo.icon+' '+esc(stCatInfo.name)+'</span></td><td>'+st.totalQuiz+'次</td><td>'+st.totalQ+'题</td><td>'+acc+'%</td><td><span class="score-badge '+badgeClass+'">'+avg+'分</span></td><td><button class="btn btn-outline btn-sm" onclick="showAdminProfile(\''+escJs(st.id)+'\')">👤</button></td></tr>' /* t11.0：XSS/注入转义 */
 });
 html+='</tbody></table></div>';
 if(totalPages>1){
@@ -5664,7 +5916,7 @@ accountPage=page;
 var start=(page-1)*accountPageSize;
 var end=start+accountPageSize;
 var pageNames=registeredNames.slice(start,end);
-var html='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="history-table"><thead><tr><th>姓名</th><th>班级</th><th>专业大类</th><th>登录密码</th><th>密码状态</th><th>操作</th></tr></thead><tbody>';
+var html='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="history-table"><thead><tr><th>姓名</th><th>班级</th><th>学校</th><th>专业大类</th><th>登录密码</th><th>密码状态</th><th>操作</th></tr></thead><tbody>';
 pageNames.forEach(function(name){
 var storedPin=userPins[name];
 var stInfo=adminStudentMap?adminStudentMap[name]:null;
@@ -5675,7 +5927,7 @@ var isDefault=storedPin&&(storedPin===hashPin('0000')||storedPin==='0000'); /* t
 var statusHtml=isDefault?'<span style="color:#ff6d00;font-weight:600">⚠️ 默认密码</span>':'<span style="color:#0d904f">✅ 已设置</span>';
 var nameEsc=esc(name),clsEsc=esc(cls); /* t11.0：XSS转义 */
 /* t11.0：不再明文展示密码，统一显示掩码（原直接输出明文密码属高危反模式） */
-html+='<tr><td><strong>'+nameEsc+'</strong></td><td>'+clsEsc+'</td><td><span style="font-size:12px">'+stCatInfo.icon+' '+esc(stCatInfo.name)+'</span></td><td style="font-family:monospace;font-size:16px;letter-spacing:4px;color:#7b1fa2;font-weight:700">••••</td><td>'+statusHtml+'</td><td><button class="btn btn-outline btn-sm" onclick="resetStudentPin(\''+escJs(name)+'\')">🔄</button></td></tr>';
+html+='<tr><td><strong>'+nameEsc+'</strong></td><td>'+clsEsc+'</td><td>'+esc(getStudentSchool(name))+'</td><td><span style="font-size:12px">'+stCatInfo.icon+' '+esc(stCatInfo.name)+'</span></td><td style="font-family:monospace;font-size:16px;letter-spacing:4px;color:#7b1fa2;font-weight:700">••••</td><td>'+statusHtml+'</td><td><button class="btn btn-outline btn-sm" onclick="showEditStudentSchoolModal('+escJs(name)+')" title="修改学校">🏫</button> <button class="btn btn-outline btn-sm" onclick="resetStudentPin(\''+escJs(name)+'\')">🔄</button></td></tr>';
 });
 html+='</tbody></table></div>';
 if(totalPages>1){
@@ -5956,7 +6208,179 @@ finalContainer.innerHTML=html;
 }
 }
 renderWeightConfig();
+renderGradeTierConfig();
 }
+
+/* ============================================================
+ * v20 评价档次配置面板（草稿式，与考核阶段同一交互）
+ * 每行：档次名称 + 对应分数 + 晋级下限分 + ⬆⬇ + 🗑️
+ * 保存走 saveAdmins()（含云端同步）；改名按「分数最接近」配对
+ * 迁移历史成绩，绝不把已有成绩洗成 0。
+ * ============================================================ */
+var _gradeTierDraft=null;
+function gradeTierConfigAdminId(){return stageConfigAdminId()}
+function getGradeTierDraft(){
+if(!_gradeTierDraft){
+_gradeTierDraft=getGradeTiers(gradeTierConfigAdminId()).map(function(t){return{name:t.name,score:t.score,min:t.min}});
+}
+return _gradeTierDraft;
+}
+function collectGradeTierDraft(){
+var draft=getGradeTierDraft();
+draft.forEach(function(t,i){
+var nInp=$('gradeTierName_'+i),sInp=$('gradeTierScore_'+i),mInp=$('gradeTierMin_'+i);
+if(nInp)t.name=String(nInp.value||'').replace(/\s+/g,' ').trim();
+if(sInp)t.score=parseInt(sInp.value,10);
+if(mInp)t.min=parseInt(mInp.value,10);
+});
+return draft;
+}
+function renderGradeTierConfig(){
+if(!currentUser||!currentUser.isAdmin)return;
+var box=$('gradeTierConfigList');if(!box)return;
+var draft=getGradeTierDraft();
+var html='<table class="history-table" style="font-size:13px"><thead><tr><th>序号</th><th>档次名称</th><th>对应分数</th><th>晋级下限分</th><th>排序</th><th>操作</th></tr></thead><tbody>';
+draft.forEach(function(t,i){
+html+='<tr><td>'+(i+1)+'</td><td><input type="text" id="gradeTierName_'+i+'" value="'+esc(t.name)+'" style="width:90px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px"></td><td><input type="number" id="gradeTierScore_'+i+'" min="0" max="100" value="'+t.score+'" style="width:76px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px"></td><td><input type="number" id="gradeTierMin_'+i+'" min="0" max="100" value="'+t.min+'" style="width:76px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px"></td><td><button class="btn btn-outline btn-sm" onclick="moveGradeTier('+i+',-1)"'+(i===0?' disabled':'')+'>⬆️</button> <button class="btn btn-outline btn-sm" onclick="moveGradeTier('+i+',1)"'+(i===draft.length-1?' disabled':'')+'>⬇️</button></td><td><button class="btn btn-outline btn-sm" style="color:var(--danger)" onclick="deleteGradeTier('+i+')">🗑️</button></td></tr>';
+});
+html+='</tbody></table>';
+box.innerHTML=html;
+var hint=$('gradeTierConfigHint');
+if(hint)hint.textContent='当前 '+draft.length+' 个档次 · 按分数从高到低排列 · 「晋级下限分」=平均分达到该值即升入此档（自评/互评换算用）';
+}
+function addGradeTier(){
+var draft=collectGradeTierDraft();
+if(draft.length>=GRADE_TIER_MAX){showToast('最多只能设置 '+GRADE_TIER_MAX+' 个档次','error');return}
+var last=draft[draft.length-1];
+var newScore=last?Math.max(0,last.score-15):60;
+draft.push({name:'档'+(draft.length+1),score:newScore,min:Math.max(0,newScore-5)});
+_gradeTierDraft=draft;
+renderGradeTierConfig();
+}
+function deleteGradeTier(i){
+var draft=collectGradeTierDraft();
+if(draft.length<=GRADE_TIER_MIN){showToast('至少保留 '+GRADE_TIER_MIN+' 个档次','error');return}
+if(!confirm('确定要删除第 '+(i+1)+' 个档次吗？\n\n已录入的该档次成绩会保留但不再显示，也不参与计算。重新添加同名档次即可恢复。'))return;
+draft.splice(i,1);
+_gradeTierDraft=draft;
+renderGradeTierConfig();
+}
+function moveGradeTier(i,dir){
+var draft=collectGradeTierDraft();
+var j=i+dir;
+if(j<0||j>=draft.length)return;
+var t=draft[i];draft[i]=draft[j];draft[j]=t;
+_gradeTierDraft=draft;
+renderGradeTierConfig();
+}
+function resetGradeTiers(){
+if(!confirm('恢复为默认档次 A(95)/B(85)/C(70)/D(50)？当前档次设置将被覆盖（已录入成绩不受影响）。'))return;
+_gradeTierDraft=DEFAULT_GRADE_TIERS.map(function(t){return{name:t.name,score:t.score,min:t.min}});
+renderGradeTierConfig();
+showToast('已恢复默认档次，请点「💾 保存档次」生效','info');
+}
+/* 旧档 → 新档 改名配对：先同名直配，剩余按分数差最小配对（未被认领的新档） */
+function buildGradeRenameMap(oldTiers,newTiers){
+var map={},claimed={};
+newTiers.forEach(function(nt){claimed[nt.name]=false});
+var pendingOld=[];
+oldTiers.forEach(function(ot){
+var same=false;
+for(var i=0;i<newTiers.length;i++){if(newTiers[i].name===ot.name){claimed[newTiers[i].name]=true;same=true;break}}
+if(!same)pendingOld.push(ot);
+});
+var pairs=[];
+pendingOld.forEach(function(ot,oi){
+newTiers.forEach(function(nt,ni){
+if(claimed[nt.name])return;
+pairs.push({d:Math.abs(nt.score-ot.score),oi:oi,ni:ni});
+});
+});
+pairs.sort(function(a,b){return a.d-b.d||a.oi-b.oi||a.ni-b.ni});
+var usedOld={};
+pairs.forEach(function(p){
+if(usedOld[p.oi]||claimed[newTiers[p.ni].name])return;
+usedOld[p.oi]=true;
+claimed[newTiers[p.ni].name]=true;
+map[pendingOld[p.oi].name]=newTiers[p.ni].name;
+});
+return map;
+}
+/* 把历史成绩里的旧档字母批量改成新档字母（只改值，不改维度键） */
+function migrateGradeTierRename(adminId,renameMap){
+if(!adminId||!renameMap)return 0;
+var keys=Object.keys(renameMap).filter(function(k){return renameMap[k]&&renameMap[k]!==k});
+if(!keys.length)return 0;
+var all=getTrainingData(adminId);
+var moved=0;
+function conv(v){return (typeof v==='string'&&renameMap[v]&&renameMap[v]!==v)?renameMap[v]:v}
+Object.keys(all).forEach(function(sid){
+var td=all[sid];if(!td)return;
+if(td.dailyScores){
+Object.keys(td.dailyScores).forEach(function(slot){
+var b=td.dailyScores[slot];if(!b)return;
+Object.keys(b).forEach(function(dim){
+var nv=conv(b[dim]);
+if(nv!==b[dim]){b[dim]=nv;moved++}
+});
+});
+}
+if(td.finalScores){
+Object.keys(td.finalScores).forEach(function(dim){
+var nv=conv(td.finalScores[dim]);
+if(nv!==td.finalScores[dim]){td.finalScores[dim]=nv;moved++}
+});
+}
+});
+if(moved>0)saveTrainingData(all,adminId);
+return moved;
+}
+function saveGradeTiers(){
+if(!currentUser||!currentUser.isAdmin)return;
+var draft=collectGradeTierDraft();
+if(draft.length<GRADE_TIER_MIN){showToast('至少保留 '+GRADE_TIER_MIN+' 个档次','error');return}
+if(draft.length>GRADE_TIER_MAX){showToast('最多只能设置 '+GRADE_TIER_MAX+' 个档次','error');return}
+var nameSeen={},dup='';
+for(var i=0;i<draft.length;i++){
+var nm=String(draft[i].name||'').replace(/\s+/g,' ').trim();
+if(!nm){showToast('第 '+(i+1)+' 个档次的名称不能为空','error');return}
+draft[i].name=nm;
+if(nameSeen[nm]){dup=nm;break}
+nameSeen[nm]=true;
+var sc=Number(draft[i].score);
+if(!isFinite(sc)||sc<0||sc>100){showToast('第 '+(i+1)+' 个档次的分数必须是 0-100','error');return}
+draft[i].score=Math.round(sc);
+var mn=Number(draft[i].min);
+if(!isFinite(mn)||mn<0||mn>100){showToast('第 '+(i+1)+' 个档次的下限分必须是 0-100','error');return}
+draft[i].min=Math.round(mn);
+}
+if(dup){showToast('档次名称不能重复：「'+dup+'」','error');return}
+for(var k=0;k<draft.length;k++){
+if(draft[k].min>draft[k].score)draft[k].min=draft[k].score;
+if(k>0&&draft[k].min>draft[k-1].min)draft[k].min=draft[k-1].min;
+}
+if(draft.length&&draft[draft.length-1].min>0)draft[draft.length-1].min=0;
+var aid=gradeTierConfigAdminId();
+var oldTiers=getGradeTiers(aid);
+var renameMap=buildGradeRenameMap(oldTiers,draft);
+var moved=migrateGradeTierRename(aid,renameMap);
+var admins=loadAdmins();
+if(!admins[aid])admins[aid]={};
+admins[aid].gradeTiers=draft.map(function(t){return{name:t.name,score:t.score,min:t.min}});
+saveAdmins(admins);
+_gradeTierDraft=null;
+renderGradeTierConfig();
+try{renderTrainingTable()}catch(e1){}
+try{renderEvalControlPanel()}catch(e2){}
+var renameCount=Object.keys(renameMap).filter(function(kk){return renameMap[kk]!==kk}).length;
+if(renameCount>0){
+showToast(moved>0?('档次已更新，同步迁移 '+moved+' 条历史成绩'):'档次已更新（暂无需要迁移的历史成绩）','success');
+}else{
+showToast('评价档次已保存','success');
+}
+}
+
+
 
 /* ===== v16：成绩权重配置面板（每个管理员独立） ===== */
 function renderWeightConfig(){
@@ -6618,6 +7042,7 @@ if(r.recordType==='admins_config'||r.recordType==='admin_config'||r.recordType==
 if(r.recordType==='student_course')return r.data.courseId===targetAdminId;
 if(r.recordType==='eval_score')return true;
 if(r.recordType==='user_pins')return true;
+if(r.recordType==='student_school')return true; /* v20 */
 return false;
 });
 }
@@ -6653,7 +7078,7 @@ var latestPins=null,latestPinsTime='';
 var latestEvalConfig=null,latestEvalConfigTime='';
 var latestMessages={};
 var readMsgIds={};
-var studentCourses={};
+var studentCourses={};var studentSchools={}; /* v20 */
 var studentCategories={};
 var petDataMap={};
 var quizResults={};
@@ -6685,6 +7110,7 @@ if(!readMsgIds[d.studentName])readMsgIds[d.studentName]={};
 readMsgIds[d.studentName][d.msgId]=true;
 }
 if(r.recordType==='student_course'&&d.targetStudentId&&d.courseId){studentCourses[d.targetStudentId]=d.courseId}
+if(r.recordType==='student_school'&&d.targetStudentId&&d.school){studentSchools[d.targetStudentId]=d.school} /* v20 */
 if(r.recordType==='student_category'&&d.targetStudentId&&d.categoryId){studentCategories[d.targetStudentId]=d.categoryId}
 if(r.recordType==='pet_data'&&d.studentId){
 if(d.pet){petDataMap[d.studentId]=d.pet}
@@ -6714,7 +7140,7 @@ if(evaluatorId!==currentUser.id){return}
 evalScores.push({key:'plc_eval_score_'+evaluatorId+'_'+d.day+'_'+d.type,scores:d.scores,evalDate:d.evalDate||''});
 }
 });
-window._restoreCache={latestAdmins:latestAdmins,latestDims:latestDims,latestTraining:latestTraining,latestPins:latestPins,latestEvalConfig:latestEvalConfig,latestMessages:latestMessages,readMsgIds:readMsgIds,studentCourses:studentCourses,studentCategories:studentCategories,petDataMap:petDataMap,quizResults:quizResults,evalScores:evalScores};
+window._restoreCache={latestAdmins:latestAdmins,latestDims:latestDims,latestTraining:latestTraining,latestPins:latestPins,latestEvalConfig:latestEvalConfig,latestMessages:latestMessages,readMsgIds:readMsgIds,studentCourses:studentCourses,studentSchools:studentSchools,studentCategories:studentCategories,petDataMap:petDataMap,quizResults:quizResults,evalScores:evalScores};
 }
 function processRestoredDataPhase2(){
 var c=window._restoreCache;if(!c)return;
@@ -6807,6 +7233,10 @@ safeSetItem('plc_messages',JSON.stringify(localMsgs));
 Object.keys(c.studentCourses).forEach(function(sid){
 safeSetItem('plc_student_course_'+sid,c.studentCourses[sid]);
 });
+Object.keys(c.studentSchools||{}).forEach(function(sid){
+safeSetItem('plc_user_school_'+sid,c.studentSchools[sid]);
+rememberSchoolName(c.studentSchools[sid]);
+});
 Object.keys(c.studentCategories).forEach(function(sid){
 safeSetItem('plc_student_category_'+sid,c.studentCategories[sid]);
 });
@@ -6857,7 +7287,7 @@ else{dimScores[d.id]={score:0,total:0,correct:0,accuracy:0}}
 var avg=st.totalQuiz>0?Math.round(st.totalSc/st.totalQuiz):0;
 var acc=st.totalQ>0?Math.round(st.totalC/st.totalQ*100):0;
 var level=avg>=90?'优秀学员':avg>=80?'良好学员':avg>=60?'合格学员':'待提升学员';
-var html='<div class="profile-card" style="margin-bottom:16px"><div class="profile-header"><div class="avatar">'+esc(st.name.charAt(0))+'</div><div class="profile-info"><h3>'+esc(st.name)+'</h3><p>'+esc(st.cls)+' · '+level+'</p></div></div><div class="profile-badges"><span class="profile-badge">📝 答题 '+st.totalQuiz+' 次</span><span class="profile-badge">✅ 正确率 '+acc+'%</span><span class="profile-badge">📊 平均分 '+avg+'</span></div></div>'; /* t11.0：XSS转义 */
+var html='<div class="profile-card" style="margin-bottom:16px"><div class="profile-header"><div class="avatar">'+esc(st.name.charAt(0))+'</div><div class="profile-info"><h3>'+esc(st.name)+'</h3><p>'+esc(st.cls)+' · '+esc(getStudentSchool(st.id||st.name))+' · '+level+'</p></div></div><div class="profile-badges"><span class="profile-badge">📝 答题 '+st.totalQuiz+' 次</span><span class="profile-badge">✅ 正确率 '+acc+'%</span><span class="profile-badge">📊 平均分 '+avg+'</span></div></div>'; /* t11.0：XSS转义 */
 html+='<div style="margin-bottom:16px"><h4 style="margin-bottom:8px">🎯 能力维度分析</h4>';
 dims.forEach(function(d){
 var data=dimScores[d.id]||{score:0,total:0,correct:0,accuracy:0},sc=data.score;
@@ -7076,8 +7506,9 @@ document.body.appendChild(overlay);setTimeout(function(){var el=document.getElem
 
 window.onload=function(){
 updateStudentClassDatalist(); /* t11.0-AI：把记住的班级补进班级候选 */
+updateStudentSchoolDatalist(); /* v20：把学校候选补进登录页 */
 var saved=strg.getItem('plc_user');
-if(saved){try{currentUser=JSON.parse(saved);$('headerUser').style.display='flex';$('userNameHeader').textContent=currentUser.name;$('userAvatarHeader').textContent=currentUser.isAdmin?'👨':currentUser.name.charAt(0);$('studentChangePwdBtn').style.display=currentUser.isAdmin?'none':'inline-flex';$('navTabs').style.display='flex';if(currentUser.isAdmin){var tabs=$('navTabs');var admins=loadAdmins();var adminInfo=admins[currentUser.id]||{};var catInfo=CATEGORIES.find(function(c){return c.id===adminInfo.category})||{icon:'📚',name:''};var courseName=adminInfo.courseName||'管理后台';tabs.innerHTML='<button class="nav-tab active" data-page="admin">👨‍💼 管理后台</button><span style="margin-left:auto;font-size:13px;color:var(--text-secondary);padding:8px 12px">'+catInfo.icon+' '+catInfo.name+'类 · '+courseName+'</span>';bindNavTabs();document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});var adminPage=$('pageAdmin');if(adminPage)adminPage.classList.add('active');var cs=$('cloudStatus');if(cs){cs.textContent='🔄';cs.title='正在加载数据...'}loadAdminData()}else{var tabs=$('navTabs');tabs.innerHTML='<button class="nav-tab active" data-page="home">🏠 首页</button><button class="nav-tab" data-page="quiz">📝 在线答题</button><button class="nav-tab" data-page="eval">📋 自评互评</button><button class="nav-tab" data-page="profile">👤 个人画像</button><button class="nav-tab" data-page="pet">🐾 我的宠物</button><button class="nav-tab" data-page="battle">⚔️ 对决之塔</button><button class="nav-tab" data-page="history">📊 答题记录</button><button class="nav-tab" data-page="messages">📨 留言</button><button class="nav-tab" onclick="showCourseSelectModal()" style="margin-left:auto;font-size:12px">🔄 切换课程</button>';bindNavTabs();var savedCategory=getStudentCategory(currentUser.id);if(savedCategory){chapters=getStudentChapters(currentUser.id);dims=buildDimsFromChapters(chapters);saveDims(dims)}var selectedCourse=getStudentCourse(currentUser.id);if(selectedCourse){switchPage('home');updateMsgBadge();renderHome();setTimeout(function(){restoreAllCloudData(function(){fetchEvalConfigFromCloud();cloudSync();renderHome()})},100)}else{showCourseSelectModal();setTimeout(function(){restoreAllCloudData(function(){fetchEvalConfigFromCloud(function(){showCourseSelectModal()})})},100)}}}catch(e){strg.removeItem('plc_user')}}
+if(saved){try{currentUser=JSON.parse(saved);if(!currentUser.school)currentUser.school=getStudentSchool(currentUser.id);$('headerUser').style.display='flex';$('userNameHeader').textContent=currentUser.name;$('userAvatarHeader').textContent=currentUser.isAdmin?'👨':currentUser.name.charAt(0);$('studentChangePwdBtn').style.display=currentUser.isAdmin?'none':'inline-flex';$('navTabs').style.display='flex';if(currentUser.isAdmin){var tabs=$('navTabs');var admins=loadAdmins();var adminInfo=admins[currentUser.id]||{};var catInfo=CATEGORIES.find(function(c){return c.id===adminInfo.category})||{icon:'📚',name:''};var courseName=adminInfo.courseName||'管理后台';tabs.innerHTML='<button class="nav-tab active" data-page="admin">👨‍💼 管理后台</button><span style="margin-left:auto;font-size:13px;color:var(--text-secondary);padding:8px 12px">'+catInfo.icon+' '+catInfo.name+'类 · '+courseName+'</span>';bindNavTabs();document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});var adminPage=$('pageAdmin');if(adminPage)adminPage.classList.add('active');var cs=$('cloudStatus');if(cs){cs.textContent='🔄';cs.title='正在加载数据...'}loadAdminData()}else{var tabs=$('navTabs');tabs.innerHTML='<button class="nav-tab active" data-page="home">🏠 首页</button><button class="nav-tab" data-page="quiz">📝 在线答题</button><button class="nav-tab" data-page="eval">📋 自评互评</button><button class="nav-tab" data-page="profile">👤 个人画像</button><button class="nav-tab" data-page="pet">🐾 我的宠物</button><button class="nav-tab" data-page="battle">⚔️ 对决之塔</button><button class="nav-tab" data-page="history">📊 答题记录</button><button class="nav-tab" data-page="messages">📨 留言</button><button class="nav-tab" onclick="showCourseSelectModal()" style="margin-left:auto;font-size:12px">🔄 切换课程</button>';bindNavTabs();var savedCategory=getStudentCategory(currentUser.id);if(savedCategory){chapters=getStudentChapters(currentUser.id);dims=buildDimsFromChapters(chapters);saveDims(dims)}var selectedCourse=getStudentCourse(currentUser.id);if(selectedCourse){switchPage('home');updateMsgBadge();renderHome();setTimeout(function(){restoreAllCloudData(function(){fetchEvalConfigFromCloud();cloudSync();renderHome()})},100)}else{showCourseSelectModal();setTimeout(function(){restoreAllCloudData(function(){fetchEvalConfigFromCloud(function(){showCourseSelectModal()})})},100)}}}catch(e){strg.removeItem('plc_user')}}
 }
 /* t11.0 修复：移除 window.onbeforeunload 强制登出。
    原逻辑在刷新/切后台/关闭页面时清除登录态，导致答题进度丢失。
@@ -7130,9 +7561,9 @@ function aiStd(a){
   for(var i=0;i<a.length;i++) s += Math.pow(a[i]-m,2);
   return aiRound(Math.sqrt(s/a.length),1);
 }
-function aiGradeOf(sc){ if(sc>=90) return 'A'; if(sc>=80) return 'B'; if(sc>=60) return 'C'; return 'D'; }
-function aiGradeScore(g){ return GRADE_MAP[g]!==undefined ? GRADE_MAP[g] : 0; }
-function aiGradeIdx(g){ return {A:4,B:3,C:2,D:1,'':0}[g]||0; }
+function aiGradeOf(sc){ return scoreToGrade(sc, aiAdminId()); }
+function aiGradeScore(g){ var m=getGradeMap(aiAdminId()); return m[g]!==undefined ? m[g] : 0; }
+function aiGradeIdx(g){ var t=getGradeTiers(aiAdminId()); for(var i=0;i<t.length;i++){ if(t[i].name===g) return t.length-i; } return 0; }
 function aiMode(arr){
   if(!arr||!arr.length) return '';
   var cnt={}, best='', bestN=0;
@@ -7181,8 +7612,12 @@ function aiStudentFeature(st, dimOverride){
   /* v18：AI 特征也按阶段遍历，五天制下与改造前完全一致 */
   var aiStageIds = stageIds(aiAdminId());
   var aiStageNames = stageNames(aiAdminId());
+  var aiTiersNow=getGradeTiers(aiAdminId());
+  var aiLow=aiTiersNow.length?aiTiersNow[aiTiersNow.length-1].name:'';
+  var aiSecondLow=aiTiersNow.length>1?aiTiersNow[aiTiersNow.length-2].name:aiLow;
+  var aiHigh=aiTiersNow.length?aiTiersNow[0].name:'';
 
-  var dailyAvgs = aiStageIds.map(function(slot){ return calcDailyAvg(ds[slot]||{}, pd); });
+  var dailyAvgs = aiStageIds.map(function(slot){ return calcDailyAvg(ds[slot]||{}, pd, aiAdminId()); });
   var theoryAvg=aiNum(st.theoryAvg), processAvg=aiNum(st.processAvg), finalAvg=aiNum(st.finalAvg), composite=aiNum(st.composite);
 
   var dims={}, dTotal=0, aTotal=0, gradeTotal=0;
@@ -7191,11 +7626,11 @@ function aiStudentFeature(st, dimOverride){
     aiStageIds.forEach(function(slot){
       var g=(ds[slot]||{})[dim]||'';
       if(g){ grades.push(g); vals.push(aiGradeScore(g)); }
-      if(g==='D') dCnt++;
-      if(g==='A') aCnt++;
+      if(g===aiLow) dCnt++;
+      if(g===aiHigh) aCnt++;
       gradeTotal++;
-      dTotal += (g==='D')?1:0;
-      aTotal += (g==='A')?1:0;
+      dTotal += (g===aiLow)?1:0;
+      aTotal += (g===aiHigh)?1:0;
     });
     var avg = aiAvg(vals);
     dims[dim] = { avg:avg, grades:grades, std:aiStd(vals), dCount:dCnt, aCount:aCnt,
@@ -7208,7 +7643,7 @@ function aiStudentFeature(st, dimOverride){
     var g = fs[dim]||'';
     var sc = aiGradeScore(g);
     ydimsSet(fdims, dim, { grade:g, score:sc });
-    if(g==='D') finalDTotal++;
+    if(g===aiLow) finalDTotal++;
   });
   function ydimsSet(o,k,v){ o[k]=v; }
 
@@ -7221,14 +7656,14 @@ function aiStudentFeature(st, dimOverride){
   });
   fd.forEach(function(dim){
     var g=fdims[dim].grade; if(!g) return;
-    if(g==='A') strong.push({ name:dim, avg:fdims[dim].score, from:'final' });
-    if(g==='D'||g==='C') weak.push({ name:dim, avg:fdims[dim].score, from:'final' });
+    if(g===aiHigh) strong.push({ name:dim, avg:fdims[dim].score, from:'final' });
+    if(g===aiLow||g===aiSecondLow) weak.push({ name:dim, avg:fdims[dim].score, from:'final' });
   });
 
   var triad = aiTriangulation(st.id, td);
 
   /* 已评维度均分：排除教师尚未录入的维度，避免「未录入=0 分」把均分拉低。
-     原系统的 calcDailyAvg 固定除以维度总数，空维度按 GRADE_MAP['']=0 计入，
+     原系统的 calcDailyAvg 固定除以维度总数，空维度按未评档(0分)计入，
      这里单独算一份"真实已评均分"，用于智能体的定性判断。 */
   var gradedVals=[], blankDims=[];
   pd.forEach(function(dim){
@@ -7457,6 +7892,9 @@ function aiLocalStudentReport(f){
 /* 全班诊断 */
 function aiLocalClassReport(features){
   var D=aiDims(), pd=D.processDims;
+  var aiTiersL=getGradeTiers(aiAdminId());
+  var aiLowL=aiTiersL.length?aiTiersL[aiTiersL.length-1].name:'';
+  var aiSecondLowL=aiTiersL.length>1?aiTiersL[aiTiersL.length-2].name:aiLowL;
   var dimAgg={};
   pd.forEach(function(dim){ if(dim==='自评'||dim==='互评') return; dimAgg[dim]={sum:0,n:0,dCount:0,dStudents:0,students:0,min:100,max:0}; });
   var fAgg={}; D.finalDims.forEach(function(dim){ fAgg[dim]={sum:0,n:0,cCount:0}; });
@@ -7475,7 +7913,7 @@ function aiLocalClassReport(features){
       var g=f.fdims[dim]?f.fdims[dim].grade:'';
       if(!g) return;
       fAgg[dim].sum+=aiGradeScore(g); fAgg[dim].n++;
-      if(g==='C'||g==='D') fAgg[dim].cCount++;
+      if(g===aiLowL||g===aiSecondLowL) fAgg[dim].cCount++;
     });
   });
 
@@ -8078,11 +8516,11 @@ function aiSelfSt(){
   var pd=cfg.processDims||DEFAULT_PROCESS_DIMS, fd=cfg.finalDims||DEFAULT_FINAL_DIMS;
   var aw=normWeights(cfg.weights);
   var wSum=aw.theory+aw.process+aw.final;
-  var T=getTheoryAvg(sid), P=calcWeeklyProcessAvg(td.dailyScores,pd), F=calcFinalAvg(td.finalScores,fd,getFinalDimWeights(adminId));
+  var T=getTheoryAvg(sid), P=calcWeeklyProcessAvg(td.dailyScores,pd,null,adminId), F=calcFinalAvg(td.finalScores,fd,getFinalDimWeights(adminId),adminId);
   return { id:sid, name:currentUser.name, cls:currentUser.cls, data:td,
            theoryAvg:T, processAvg:P, finalAvg:F, composite:calcComposite(T,P,F,aw),
            wProcess:(wSum>0?aw.process/wSum:0.3),
-           alert:checkAlert(td.dailyScores,pd), _dims:{processDims:pd,finalDims:fd,courseName:cfg.courseName||'实训课程'} };
+           alert:checkAlert(td.dailyScores,pd,null,adminId), _dims:{processDims:pd,finalDims:fd,courseName:cfg.courseName||'实训课程'} };
 }
 function aiBodyGrowth(){
   var h='<div class="ai-panel"><div class="ai-panel-hd"><b>我的成长建议</b>'
