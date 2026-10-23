@@ -4936,6 +4936,7 @@ try{processAdminData()}catch(e){console.error('processAdminData error:',e);try{u
 },60000);
 function onAllComplete(){
 clearTimeout(loadTimer);
+window._rawForRoster=(adminAllRecords||[]).slice();   /* v22.4：过滤前留一份，补全学生名单要用（挂全局，跨函数可读） */
 adminLoading=false;
 var adminIds={};
 var admins=loadAdmins();
@@ -4977,6 +4978,9 @@ if(r.recordType==='user_pins')return true;
 if(r.recordType==='student_school')return true; /* v20 */
 if(r.recordType==='quiz_result')return true;
 if(r.recordType==='student_category')return true;
+/* v22.4：这些记录以前被整类丢掉，导致「只登录过、没答题」的学生在管理端完全看不到 */
+if(r.recordType==='pet_data')return true;
+if(r.recordType==='message_data'||r.recordType==='message_read')return true;
 return false;
 });
 adminAllRecords=adminAllRecords.concat(filtered);
@@ -5059,6 +5063,22 @@ setStudentCategory(studentName,d.category);
    eval_score 只在「评价人 == 被评价人」（自评）时用 studentClass，
    互评时用 targetStudentClass，避免把评价人的班级错填到被评价学生身上。 */
 var _STUDENT_CLASS_TYPES={quiz_result:1,user_pins:1,student_category:1,student_course:1,message_read:1,pet_data:1,message_data:1,batch_send_log:1};
+/* v22.4：答题记录之外（宠物/密码/选课/留言等）也要建学生条目。
+   原来这些记录只用来「回填班级」，学生本人不进名单 —— 于是没答过题的学生在管理端完全看不到。 */
+(window._rawForRoster||adminAllRecords||[]).forEach(function(cr){
+var _d=cr.data||{};
+if(!_STUDENT_CLASS_TYPES[cr.recordType])return;
+var _nm=_d.studentName||''; if(!_nm||_nm==='未知')return;
+if(adminIdSet[_nm]||(_d.studentId&&adminIdSet[_d.studentId]))return;
+var _cls=normalizeClassName(_d.studentClass||'');
+if(_cls==='管理后台')return;
+if(!adminStudentMap[_nm]){
+adminStudentMap[_nm]={name:_nm,cls:_cls||'',school:(_d.studentSchool&&_d.studentSchool!=='未知')?_d.studentSchool:'',id:_nm,records:[],totalQuiz:0,totalQ:0,totalC:0,totalSc:0};
+}else{
+if(!adminStudentMap[_nm].cls&&_cls)adminStudentMap[_nm].cls=_cls;
+if((!adminStudentMap[_nm].school||adminStudentMap[_nm].school==='未知')&&_d.studentSchool&&_d.studentSchool!=='未知')adminStudentMap[_nm].school=_d.studentSchool;
+}
+});
 function backfillStudentClasses(){
 var need={};
 function put(key,cls){
