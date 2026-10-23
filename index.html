@@ -291,8 +291,8 @@ input,select,textarea{font-size:16px!important}
 <div class="login-split">
 <div id="studentLoginForm">
 <div class="login-form card"><div class="card-title"><span class="icon-box" style="background:var(--primary-light);color:var(--primary)">🔑</span> 学生登录</div>
-<div class="form-group"><label>姓名</label><input type="text" id="studentName" placeholder="请输入你的姓名"></div>
-<div class="form-group"><label>班级</label><input type="text" id="studentClass" list="classList" placeholder="请选择或输入班级"><datalist id="classList"><option value="机电232班"><option value="机电241班"><option value="机电242班"><option value="机电243班"></datalist></div>
+<div class="form-group"><label>姓名 <span style="color:var(--danger)">*</span></label><input type="text" id="studentName" placeholder="请输入你的姓名（必填）"></div>
+<div class="form-group"><label>班级 <span style="color:var(--danger)">*</span></label><input type="text" id="studentClass" list="classList" placeholder="请选择或输入班级（必填）"><datalist id="classList"><option value="机电232班"><option value="机电241班"><option value="机电242班"><option value="机电243班"></datalist></div>
 <div class="form-group"><label>学校 <span style="color:var(--danger)">*</span></label><input type="text" id="studentSchool" list="schoolList" placeholder="请选择或输入所在学校（必填）"><datalist id="schoolList"></datalist><div style="font-size:12px;color:var(--text-secondary);margin-top:4px">请输入你就读学校的全称，系统按学校归类评价数据（必填）</div></div>
 <button class="btn btn-primary btn-lg btn-block" onclick="login()">进入系统</button>
 </div></div>
@@ -4629,6 +4629,8 @@ overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:r
 var modal=document.createElement('div');
 modal.style.cssText='background:#fff;border-radius:16px;padding:28px 32px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)';
 var courseOptions=courses.map(function(c){return '<option value="'+c.id+'">'+c.catIcon+' '+c.catName+'类 · '+c.name+' ('+c.adminName+')</option>'}).join('');
+/* v21.1：超管在同一个弹窗里把「课程 + 学校 + 班级」一次选完 */
+var schoolOptions=(function(){var arr=[];try{arr=getKnownSchools()}catch(e){arr=[]}return arr.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>'}).join('')})();
 modal.innerHTML='<div style="text-align:center;margin-bottom:20px">'+
 '<div style="font-size:40px;margin-bottom:8px">👨‍💼</div>'+
 '<h3 style="margin:0 0 6px;color:#1a237e;font-size:20px">超级教师登录</h3>'+
@@ -4638,6 +4640,12 @@ modal.innerHTML='<div style="text-align:center;margin-bottom:20px">'+
 '<label style="display:block;font-size:13px;color:#666;margin-bottom:6px">选择课程</label>'+
 '<select id="superCourseSelect" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:15px" onchange="updateSuperClassOptions()">'+
 '<option value="">-- 请选择课程 --</option>'+courseOptions+
+'</select>'+
+'</div>'+
+'<div style="margin-bottom:16px">'+
+'<label style="display:block;font-size:13px;color:#666;margin-bottom:6px">选择学校</label>'+
+'<select id="superSchoolSelect" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:15px">'+
+'<option value="">全部学校</option>'+schoolOptions+
 '</select>'+
 '</div>'+
 '<div style="margin-bottom:20px">'+
@@ -4717,6 +4725,9 @@ showToast('请选择课程','error');return;
 }
 var selectedCourseId=courseSelect.value;
 var selectedClass=classSelect?classSelect.value:'';
+/* v21.1：学校下拉必须在 overlay 被 remove 之前读，否则拿到 null */
+var _ssElEarly=$('superSchoolSelect');
+var _scSchoolEarly=_ssElEarly?_ssElEarly.value:'';
 /* t11.0-AI 新增：支持在超管登录弹窗里手动输入班级 */
 if(selectedClass==='__custom__'){
 var ci=$('superClassCustomInput');
@@ -4749,9 +4760,13 @@ document.querySelectorAll('.page').forEach(function(p){p.classList.remove('activ
 var adminPage=$('pageAdmin');
 if(adminPage)adminPage.classList.add('active');
 var cs=$('cloudStatus');if(cs){cs.textContent='🔄';cs.title='正在加载数据...'}
+try{
+setAdminScope(currentUser.id,{school:_scSchoolEarly,cls:selectedClass,all:!selectedClass});
+updateAdminScopeLabel();
+}catch(e){}
 showToast('超级教师登录成功，当前课程：'+catInfo.icon+' '+catInfo.name+'类 · '+courseName,'success');
-/* v21：超管选完课程后，再确认学校/班级定位，然后再加载数据 */
-showAdminScopeModal(function(){loadAdminData()});
+/* v21.1：课程 + 学校 + 班级一次选完，不再二次弹定位（避免重复选择、数据量过大） */
+loadAdminData();
 }
 
 function finishAdminLogin(u,adminInfo){
@@ -5684,8 +5699,12 @@ if(!currentUser||!currentUser.isAdmin){if(cb)cb(false);return}
 window._adminScopeCb=(typeof cb==='function')?cb:null;
 var old=$('adminScopeOverlay');if(old)old.remove();
 var cur=getAdminScope(currentUser.id);
-var schHtml='<option value="">全部学校</option>';
-getKnownSchools().forEach(function(s){
+/* v21.1：普通教师必须选具体学校 —— 没填学校的学生只归超管看；超管保留「全部学校」 */
+var _schoolList=getKnownSchools();
+var schHtml='';
+if(currentUser.isSuperAdmin){schHtml='<option value="">全部学校</option>'}
+else if(_schoolList.length&&!cur.school){cur.school=_schoolList[0]}
+_schoolList.forEach(function(s){
 schHtml+='<option value="'+esc(s)+'"'+(s===cur.school?' selected':'')+'>'+esc(s)+'</option>';
 });
 var clsHtml=buildScopeClassOptions(cur.all?'':cur.cls);
