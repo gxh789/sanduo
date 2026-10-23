@@ -360,7 +360,7 @@ input,select,textarea{font-size:16px!important}
 <button class="admin-tab active" onclick="jumpAdminSection('adminSecTraining',this)">🔧 实训考核</button>
 <button class="admin-tab" onclick="jumpAdminSection('dimConfigCard',this)">📐 评价指标</button>
 <button class="admin-tab" onclick="jumpAdminSection('adminSecStudents',this)">👥 学生列表</button>
-<button class="admin-tab" onclick="jumpAdminSection('adminSecRecords',this)">📋 答题记录</button>
+<!-- v22.1：汇总模式下不再提供「全部答题记录」（管理端已不拉答题明细，统计会失真） -->
 <button class="admin-tab" onclick="jumpAdminSection('adminSecAccount',this)">🔑 学生账户</button>
 <button class="admin-tab" onclick="jumpAdminSection('adminManageCard',this)">👤 管理员</button>
 </div>
@@ -400,7 +400,7 @@ input,select,textarea{font-size:16px!important}
 <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="adminSearch" placeholder="搜索姓名/班级..." style="flex:1;min-width:140px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" oninput="adminStudentPage=1;renderAdminStudents()"><select id="adminSortFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="adminStudentPage=1;renderAdminStudents()"><option value="newest_desc">最新添加 ↓</option><option value="score_desc">平均分 ↓</option><option value="quiz_desc">答题次数 ↓</option><option value="name_asc">姓名 A→Z</option><option value="class_asc">班级 A→Z</option></select><select id="adminCategoryFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;display:none" onchange="adminStudentPage=1;renderAdminDashboard()"></select><select id="adminCourseFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;display:none" onchange="syncCourseFilter('admin');adminStudentPage=1;loadAdminData()"></select><select id="adminClassFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="onClassFilterChange('admin')" title="可按班级筛选；班级不在列表里时选「手动输入班级」"><option value="">全部班级</option><option value="机电232班">机电232班</option><option value="机电241班">机电241班</option><option value="机电242班">机电242班</option><option value="机电243班">机电243班</option></select><select id="adminSchoolFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px" onchange="adminStudentPage=1;renderAdminStudents()" title="按学校筛选学生"><option value="">全部学校</option></select></div>
 <div id="adminStudentList"></div></div>
 
-<div class="card fade-in" id="adminSecRecords"><div class="card-title"><span class="icon-box" style="background:#e8f5e9;color:#2e7d32">📋</span> 全部答题记录</div>
+<div class="card fade-in" id="adminSecRecords" style="display:none"><div class="card-title"><span class="icon-box" style="background:#e8f5e9;color:#2e7d32">📋</span> 全部答题记录</div>
 <div id="adminAllRecords"></div></div>
 
 <div class="card fade-in" id="adminSecAccount" style="border-left:4px solid #7b1fa2"><div class="card-title"><span class="icon-box" style="background:#f3e5f5;color:#7b1fa2">🔑</span> 学生账户管理 <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:8px">查看学生登录密码、重置密码</span></div>
@@ -6293,14 +6293,14 @@ var start=(page-1)*ADMIN_STUDENT_PAGE_SIZE;
 var end=Math.min(start+ADMIN_STUDENT_PAGE_SIZE,total);
 var pageStudents=students.slice(start,end);
 var html='<div style="margin-bottom:8px;font-size:13px;color:var(--text-secondary)">共 '+total+' 名学生，当前第 '+page+'/'+totalPages+' 页</div>';
-html+='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="history-table"><thead><tr><th>姓名</th><th>班级</th><th>学校</th><th>专业大类</th><th>答题次数</th><th>答题总数</th><th>正确率</th><th>平均分</th><th>操作</th></tr></thead><tbody>';
+html+='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="history-table"><thead><tr><th>姓名</th><th>班级</th><th>学校</th><th>专业大类</th><th title="汇总模式下不统计答题明细">答题次数</th><th title="汇总模式下不统计答题明细">答题总数</th><th title="汇总模式下不统计答题明细">正确率</th><th>平均分</th><th>操作</th></tr></thead><tbody>';
 pageStudents.forEach(function(st){
 var avg=st.totalQuiz>0?Math.round(st.totalSc/st.totalQuiz):0;
 var acc=st.totalQ>0?Math.round(st.totalC/st.totalQ*100):0;
 var badgeClass=avg>=90?'excellent':avg>=80?'good':avg>=60?'average':'poor';
 var stCat=getStudentCategory(st.id||st.name);
 var stCatInfo=CATEGORIES.find(function(c){return c.id===stCat})||{icon:'📚',name:'未设'};
-html+='<tr><td><strong>'+esc(st.name)+'</strong>'+(isNewlyAddedStudent(st)?' <span style="font-size:10px;padding:1px 5px;border-radius:8px;background:#e8f5e9;color:#2e7d32;white-space:nowrap">🆕 新添加</span>':'')+'</td><td>'+esc(st.cls)+'</td><td>'+esc(getStudentSchool(st.id||st.name))+'</td><td><span style="font-size:12px">'+stCatInfo.icon+' '+esc(stCatInfo.name)+'</span></td><td>'+st.totalQuiz+'次</td><td>'+st.totalQ+'题</td><td>'+acc+'%</td><td><span class="score-badge '+badgeClass+'">'+avg+'分</span></td><td><button class="btn btn-outline btn-sm" onclick="showAdminProfile(\''+escJs(st.id)+'\')">👤</button></td></tr>' /* t11.0：XSS/注入转义 */
+html+='<tr><td><strong>'+esc(st.name)+'</strong>'+(isNewlyAddedStudent(st)?' <span style="font-size:10px;padding:1px 5px;border-radius:8px;background:#e8f5e9;color:#2e7d32;white-space:nowrap">🆕 新添加</span>':'')+'</td><td>'+esc(st.cls)+'</td><td>'+esc(getStudentSchool(st.id||st.name))+'</td><td><span style="font-size:12px">'+stCatInfo.icon+' '+esc(stCatInfo.name)+'</span></td><td title="汇总模式下不统计答题明细">—</td><td title="汇总模式下不统计答题明细">—</td><td title="汇总模式下不统计答题明细">—</td><td><span class="score-badge '+badgeClass+'">'+avg+'分</span></td><td><button class="btn btn-outline btn-sm" onclick="showAdminProfile(\''+escJs(st.id)+'\')">👤</button></td></tr>' /* t11.0：XSS/注入转义 */
 });
 html+='</tbody></table></div>';
 if(totalPages>1){
