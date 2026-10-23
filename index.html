@@ -4894,9 +4894,12 @@ if(!currentUser||!currentUser.isAdmin)return;
 if(adminLoading)return;
 loadAdminData();
 if(adminRefreshTimer){clearInterval(adminRefreshTimer)}
+/* v21.6：原来每 2 分钟自动全量重拉一次，数据一多就一直在加载。改为 10 分钟，
+   并且页面切到后台时不自动拉，避免无谓请求。 */
 adminRefreshTimer=setInterval(function(){
+if(document.hidden)return;
 if(currentUser&&currentUser.isAdmin&&!adminLoading){loadAdminData()}
-},120000);
+},600000);
 }
 function updateAdminRefreshTime(){
 var span=$('adminLastRefresh');
