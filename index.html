@@ -5653,6 +5653,8 @@ var cf=getCourseFilterAdminId();
 if(cf&&getStudentCourse(sid)!==cf)return false;
 }
 var sc=getAdminScope(currentUser.id);
+/* v21.2：普通教师必须已指定学校 —— 新账号/清缓存后未设定位时，不能退化成"看全部学校" */
+if(!currentUser.isSuperAdmin&&!sc.school)return false;
 /* ② 学校 */
 if(sc.school&&sc.school!=='全部学校'){
 if(studentSchoolOf(st)!==sc.school)return false;
@@ -5693,6 +5695,20 @@ if(!el)return;
 if(!currentUser||!currentUser.isAdmin){el.textContent='';return}
 var sc=getAdminScope(currentUser.id);
 el.textContent='🏫 '+(sc.school||'全部学校')+' · '+((sc.all||!sc.cls)?'全部班级':sc.cls);
+/* v21.2：普通教师未选学校时给出明确提示，避免"表是空的但不知道为什么" */
+try{
+var hint=$('adminScopeHint');
+if(!hint){
+hint=document.createElement('span');hint.id='adminScopeHint';
+hint.style.cssText='font-size:12px;color:#e37400;background:#fff8e1;border:1px solid #ffe0b2;padding:3px 8px;border-radius:6px;margin-left:8px';
+if(el&&el.parentElement)el.parentElement.appendChild(hint);
+}
+if(!currentUser.isSuperAdmin&&!sc.school){
+hint.style.display='';hint.textContent='⚠️ 还没选学校，看不到学生 —— 点右边「🏫 切换学校/班级」选一下';
+}else{
+hint.style.display='none';hint.textContent='';
+}
+}catch(e){}
 }
 function showAdminScopeModal(cb){
 if(!currentUser||!currentUser.isAdmin){if(cb)cb(false);return}
