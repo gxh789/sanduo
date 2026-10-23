@@ -4843,6 +4843,15 @@ function applySummaries(sums){
     if(!sums||!sums.length)return false;
     var scopeId=(currentUser&&currentUser.isSuperAdmin)?getCourseFilterAdminId():(currentUser&&currentUser.id);
     var sc=getAdminScope(currentUser.id);
+    /* v22.2：同 key 可能有多条（重复迁移），只取 updatedAt 最新的那条 */
+    var _byKey={};
+    (sums||[]).forEach(function(r){
+      var d=r.data||{};
+      var k=(d.adminId||'')+'|'+(d.school||'')+'|'+(d.cls||'');
+      var t=d.updatedAt||'';
+      if(!_byKey[k]||t>(_byKey[k].t||'')){_byKey[k]={d:d,t:t}}
+    });
+    sums=Object.keys(_byKey).map(function(k){return {data:_byKey[k].d}});
     var hit=[];
     sums.forEach(function(r){
       var d=r.data||{};
@@ -5851,7 +5860,11 @@ function buildClassSummary(adminId,school,cls){
   try{
     list=getTrainingStudents(adminId).filter(function(s){
       if(school&&((s.school||'')!==school))return false;
-      if(cls){ if(typeof classMatch==='function'){if(!classMatch(s.cls||'',cls))return false}else{if((s.cls||'')!==cls)return false} }
+      if(cls){
+        if(cls==='未分班'){ if((s.cls||'')!=='')return false; }   /* v22.3：只取班级为空的学生 */
+        else if(typeof classMatch==='function'){ if(!classMatch(s.cls||'',cls))return false }
+        else if((s.cls||'')!==cls)return false;
+      }
       return true;
     });
   }catch(e){console.warn('buildClassSummary filter error:',e)}
@@ -5867,7 +5880,7 @@ function buildClassSummary(adminId,school,cls){
     studentCount:list.length,
     students:list.map(function(s){
       return {
-        name:s.name, cls:s.cls||'', school:s.school||'',
+        name:s.name, cls:(cls||s.cls||''), school:(school||s.school||''),
         composite:(typeof s.composite==='number'?s.composite:null),
         processAvg:(typeof s.processAvg==='number'?s.processAvg:null),
         finalAvg:(typeof s.finalAvg==='number'?s.finalAvg:null),
@@ -5900,8 +5913,10 @@ function migrateToSummaries(){
   if(!currentUser||!currentUser.isSuperAdmin){showToast('只有超级管理员可以执行','error');return}
   if(!confirm('将把现有成绩明细整理为「班级汇总」，只需执行一次，约需 1~2 分钟。\n\n整理期间请保持页面打开。是否继续？'))return;
   var cs=$('cloudStatus');
-  showToast('正在加载全量数据，请稍候…','success');
-  loadAdminData();
+  showToast('正在加载全量明细，请稍候（约需 30 秒）…','success');
+  /* v22.2：必须强制走明细 —— 若读汇总，会基于上次的汇总再汇总，人数越迁越少 */
+  adminLoading=true;
+  try{__loadAdminDataSlow()}catch(e){adminLoading=false;console.error('migrate load error:',e);showToast('加载失败，请重试','error');return}
   var waited=0;
   var timer=setInterval(function(){
     waited+=1000;
@@ -5917,6 +5932,8 @@ function migrateToSummaries(){
         if(!cid)return;
         var sch=st.school||'';
         var cls2=st.cls||'';
+        if(cls2==='管理后台'||cls2==='未知')return;   /* v22.3：老师账号/未知记录不算学生 */
+        if(!cls2)cls2='未分班';                       /* v22.3：没填班级的归入「未分班」，不能丢 */
         var key=cid+'|'+sch+'|'+cls2;
         if(!groups[key]){groups[key]={adminId:cid,school:sch,cls:cls2};order.push(key)}
       });
