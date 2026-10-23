@@ -352,6 +352,7 @@ input,select,textarea{font-size:16px!important}
 <div style="margin-bottom:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
 <button class="btn btn-primary btn-sm" onclick="refreshAdminData()" id="adminRefreshBtn">🔄 刷新数据</button>
 <button class="btn btn-outline btn-sm" onclick="showAdminScopeModal()" id="adminScopeBtn" title="选择你任教的学校与班级（科目跟账号绑定）">🏫 切换学校/班级</button>
+<button class="btn btn-outline btn-sm" onclick="migrateToSummaries()" id="migrateSummaryBtn" style="display:none" title="把现有成绩明细整理为班级汇总（只需执行一次）">📦 整理为汇总数据</button>
 <span id="adminScopeLabel" style="font-size:12px;color:var(--text-secondary)"></span>
 <span id="adminLastRefresh" style="font-size:12px;color:var(--text-secondary)"></span>
 </div>
@@ -1674,7 +1675,7 @@ READ_URL:'https://www.edunav.cn/api/data-tasks/task_187ff1e5cb8a/records',
 syncing:false,
 lastSync:0
 };
-var CLOUD2_TYPES=['message_data','message_read','student_course','student_category','student_school','pet_data','quiz_result','user_pins','batch_send_log','training_scores_batch']; /* v20：学生学校归属走 CLOUD2 */ /* t11.0：training_scores_batch 迁移到 CLOUD2（容量充裕），CLOUD 已满 */
+var CLOUD2_TYPES=['message_data','message_read','student_course','student_category','student_school','pet_data','quiz_result','user_pins','batch_send_log','training_scores_batch','class_summary']; /* v22：班级汇总与成绩同库 */ /* v20：学生学校归属走 CLOUD2 */ /* t11.0：training_scores_batch 迁移到 CLOUD2（容量充裕），CLOUD 已满 */
 function getCloudForType(recordType){return CLOUD2_TYPES.indexOf(recordType)>=0?CLOUD2:CLOUD}
 function cloudHeaders(apiObj){apiObj=apiObj||CLOUD;return{'Authorization':'Bearer '+apiObj.API_KEY,'Content-Type':'application/json'}}
 
@@ -1750,7 +1751,9 @@ function fetchAllApis(apiQueue,onPage,onDone,opts){
       return new Promise(function(resolve){
         var controller=new AbortController();
         var t=setTimeout(function(){controller.abort()},timeout);
-        fetch(apiObj.READ_URL+'?page='+page+'&limit='+CONFIG.CLOUD_PAGE_LIMIT,
+        var _rdUrl=apiObj.READ_URL+'?page='+page+'&limit='+CONFIG.CLOUD_PAGE_LIMIT
+          +(opts.recordType?('&recordType='+encodeURIComponent(opts.recordType)):'');
+        fetch(_rdUrl,
           {method:'GET',headers:cloudHeaders(apiObj),signal:controller.signal})
         .then(function(r){clearTimeout(t);return r.json().then(function(j){return {ok:true,res:j}})},
               function(e){clearTimeout(t);return {ok:false,err:e}})
@@ -1958,6 +1961,13 @@ jsonStr=JSON.stringify(data);
 }
 }
 safeSetItem('plc_training_scores_'+adminId,jsonStr);
+/* v22：成绩变化后重建当前定位班级的汇总（5 秒防抖），让管理端下次打开直接读汇总 */
+try{
+if(currentUser&&currentUser.isAdmin){
+var _scp=getAdminScope(currentUser.id);
+scheduleRebuildSummary(adminId,_scp.school||'',(_scp.all?'':(_scp.cls||'')));
+}
+}catch(e){console.warn('schedule summary error:',e)}
 if(currentUser&&currentUser.isAdmin){
 var _sig=jsonStr.length+':'+hashStr(jsonStr,0x51ab);
 if(_trainingUploadSig[adminId]===_sig){return} /* 与上次成功上传内容一致 → 跳过重复上传 */
@@ -2197,6 +2207,13 @@ if(!studentInAdminScope(st))return;
 processedNames[st.name]=true;
 var td=all[st.id]||createDefaultTrainingData(effectiveAdminId);
 ensureStageShells(td,effectiveAdminId,stageList);    /* v18：补齐启用阶段的空壳 */
+/* v22：来自班级汇总的学生直接使用已算好的分数，不再逐条重算 */
+if(st._precomputed){
+students.push({id:st.id,name:st.name,cls:st.cls,school:(st.school||getStudentSchool(st.id)),
+theoryAvg:st._precomputed.theoryAvg,processAvg:st._precomputed.processAvg,finalAvg:st._precomputed.finalAvg,
+composite:st._precomputed.composite,alert:st._precomputed.alert,data:td,firstSeen:st.firstSeen||''});
+return;
+}
 var theoryAvg=getTheoryAvg(st.id);
 var processAvg=calcWeeklyProcessAvg(td.dailyScores,processDims,stageIdList,effectiveAdminId);
 var finalAvg=calcFinalAvg(td.finalScores,finalDims,finalDimWeights,effectiveAdminId);
@@ -4820,7 +4837,77 @@ showToast('教师登录成功','success');
 showAdminScopeModal(function(){loadAdminData()});
 }
 
+/* v22：先读「班级汇总」——命中就直接渲染，未命中回落明细（__loadAdminDataSlow） */
+function applySummaries(sums){
+  try{
+    if(!sums||!sums.length)return false;
+    var scopeId=(currentUser&&currentUser.isSuperAdmin)?getCourseFilterAdminId():(currentUser&&currentUser.id);
+    var sc=getAdminScope(currentUser.id);
+    var hit=[];
+    sums.forEach(function(r){
+      var d=r.data||{};
+      if(scopeId&&d.adminId&&d.adminId!==scopeId)return;
+      if(!currentUser.isSuperAdmin&&!sc.school)return;
+      if(sc.school&&d.school&&d.school!==sc.school)return;
+      if(!sc.all&&sc.cls&&d.cls&&(!classMatch?d.cls!==sc.cls:!classMatch(d.cls,sc.cls)))return;
+      hit.push(d);
+    });
+    if(!hit.length)return false;
+    var map={};
+    hit.forEach(function(d){
+      (d.students||[]).forEach(function(s){
+        var sid=s.name;
+        if(map[sid])return;
+        map[sid]={id:sid,name:s.name,cls:s.cls||d.cls||'',school:s.school||d.school||'',
+          _precomputed:{composite:s.composite,processAvg:s.processAvg,finalAvg:s.finalAvg,
+                        theoryAvg:s.theoryAvg,alert:s.alert},_summaryAt:d.updatedAt||''};
+      });
+    });
+    if(!Object.keys(map).length)return false;
+    adminStudentMap=map;
+    adminAllRecords=[];
+    window.__summaryUsed=hit.length;
+    /* v22：不能调 processAdminData —— 它会用 adminAllRecords 重建 map，把汇总结果冲掉 */
+    try{
+      updateClassFilters();
+      renderAdminDashboard();
+      renderTrainingTable();
+      renderEvalControlPanel();
+      if(typeof updateAdminRefreshTime==='function')updateAdminRefreshTime();
+    }catch(e){console.error('render after summary error:',e)}
+    var cs=$('cloudStatus');
+    if(cs){var t=hit[0].updatedAt?new Date(hit[0].updatedAt).toLocaleString('zh-CN'):'';cs.textContent='☁️';cs.title='数据来自班级汇总'+(t?('（更新于 '+t+'）'):'')}
+    showToast('已加载 '+hit.length+' 个班级汇总','success');
+    return true;
+  }catch(e){console.error('applySummaries error:',e);return false}
+}
+
 function loadAdminData(){
+  if(!currentUser||!currentUser.isAdmin)return;
+  if(adminLoading)return;
+  adminLoading=true;
+  var cs=$('cloudStatus');if(cs){cs.textContent='🔄';cs.title='正在读取班级汇总…'}
+  var finished=false;
+  var guard=setTimeout(function(){
+    if(finished)return;finished=true;adminLoading=false;
+    try{__loadAdminDataSlow()}catch(e){console.error(e)}
+  },12000);
+  var buf=[];
+  try{
+    fetchAllApis([CLOUD2],function(records){
+      (records||[]).forEach(function(r){if(r.recordType==='class_summary')buf.push(r)});
+    },function(){
+      if(finished)return;finished=true;clearTimeout(guard);
+      adminLoading=false;
+      if(applySummaries(buf))return;
+      try{__loadAdminDataSlow()}catch(e){console.error(e)}
+    },{maxPages:2,recordType:'class_summary',timeout:10000,retryMax:1});
+  }catch(e){
+    if(!finished){finished=true;clearTimeout(guard);adminLoading=false;try{__loadAdminDataSlow()}catch(e2){}}
+  }
+}
+
+function __loadAdminDataSlow(){
 if(adminLoading){
 var btn=$('adminRefreshBtn');if(btn){btn.disabled=false;btn.textContent='🔄 刷新数据'}
 return;
@@ -5749,8 +5836,111 @@ hint.style.display='';hint.textContent='⚠️ 还没选学校，看不到学生
 }else{
 hint.style.display='none';hint.textContent='';
 }
+/* v22：整理按钮仅超管可见 */
+var mb=$('migrateSummaryBtn');
+if(mb){mb.style.display=currentUser.isSuperAdmin?'':'none'}
 }catch(e){}
 }
+/* ================= v22：班级汇总（方案C） =================
+   目的：管理端不再每次拉全部明细现场算分，改为读「一个科目+学校+班级」的汇总快照。
+   汇总由客户端在保存数据后重建，或由超管一次性迁移生成。 */
+var _summaryTimers={};
+
+function buildClassSummary(adminId,school,cls){
+  var list=[];
+  try{
+    list=getTrainingStudents(adminId).filter(function(s){
+      if(school&&((s.school||'')!==school))return false;
+      if(cls){ if(typeof classMatch==='function'){if(!classMatch(s.cls||'',cls))return false}else{if((s.cls||'')!==cls)return false} }
+      return true;
+    });
+  }catch(e){console.warn('buildClassSummary filter error:',e)}
+  var admins={};
+  try{admins=loadAdmins()}catch(e){}
+  var cfg=admins[adminId]||{};
+  return {
+    adminId:adminId,
+    courseName:cfg.courseName||'实训课程',
+    school:school||'',
+    cls:cls||'',
+    updatedAt:new Date().toISOString(),
+    studentCount:list.length,
+    students:list.map(function(s){
+      return {
+        name:s.name, cls:s.cls||'', school:s.school||'',
+        composite:(typeof s.composite==='number'?s.composite:null),
+        processAvg:(typeof s.processAvg==='number'?s.processAvg:null),
+        finalAvg:(typeof s.finalAvg==='number'?s.finalAvg:null),
+        theoryAvg:(typeof s.theoryAvg==='number'?s.theoryAvg:null),
+        alert:s.alert||'', safePass:!!s.safePass
+      };
+    })
+  };
+}
+
+function rebuildClassSummary(adminId,school,cls,cb){
+  try{
+    var payload=buildClassSummary(adminId,school,cls);
+    cloudWrite('class_summary',payload,function(ok){if(cb)cb(!!ok)},true);
+  }catch(e){console.warn('rebuildClassSummary error:',e);if(cb)cb(false)}
+}
+
+/* 防抖：同一 adminId+学校+班级 5 秒内只重建一次 */
+function scheduleRebuildSummary(adminId,school,cls){
+  var key=adminId+'|'+(school||'')+'|'+(cls||'');
+  if(_summaryTimers[key]){clearTimeout(_summaryTimers[key])}
+  _summaryTimers[key]=setTimeout(function(){
+    delete _summaryTimers[key];
+    rebuildClassSummary(adminId,school,cls);
+  },5000);
+}
+
+/* 一次性迁移：把现有明细整理成班级汇总（仅超管，只需执行一次） */
+function migrateToSummaries(){
+  if(!currentUser||!currentUser.isSuperAdmin){showToast('只有超级管理员可以执行','error');return}
+  if(!confirm('将把现有成绩明细整理为「班级汇总」，只需执行一次，约需 1~2 分钟。\n\n整理期间请保持页面打开。是否继续？'))return;
+  var cs=$('cloudStatus');
+  showToast('正在加载全量数据，请稍候…','success');
+  loadAdminData();
+  var waited=0;
+  var timer=setInterval(function(){
+    waited+=1000;
+    if(adminLoading&&waited<180000)return;
+    clearInterval(timer);
+    var groups={},order=[];
+    try{
+      Object.keys(adminStudentMap||{}).forEach(function(k){
+        var st=adminStudentMap[k]||{};
+        var sid=st.id||st.name;
+        var cid='';
+        try{cid=getStudentCourse(sid)||''}catch(e){cid=''}
+        if(!cid)return;
+        var sch=st.school||'';
+        var cls2=st.cls||'';
+        var key=cid+'|'+sch+'|'+cls2;
+        if(!groups[key]){groups[key]={adminId:cid,school:sch,cls:cls2};order.push(key)}
+      });
+    }catch(e){console.error('migrate group error:',e)}
+    if(!order.length){showToast('没有可整理的数据（可能学生未选课）','error');if(cs){cs.textContent='⚠️'}return}
+    var i=0;
+    function step(){
+      if(i>=order.length){
+        showToast('已整理 '+order.length+' 个班级汇总','success');
+        if(cs){cs.textContent='☁️';cs.title='汇总已生成'}
+        loadAdminData();
+        return;
+      }
+      var g=groups[order[i]];
+      if(cs){cs.textContent='📦 '+(i+1)+'/'+order.length;cs.title='正在整理 '+g.cls+'…'}
+      rebuildClassSummary(g.adminId,g.school,g.cls,function(){
+        i++;
+        setTimeout(step,300);
+      });
+    }
+    step();
+  },1000);
+}
+
 function showAdminScopeModal(cb){
 if(!currentUser||!currentUser.isAdmin){if(cb)cb(false);return}
 window._adminScopeCb=(typeof cb==='function')?cb:null;
@@ -5832,6 +6022,8 @@ var _newC=_cs.value||'';
 var _oldC=getCourseFilterAdminId()||'';
 if(_newC!==_oldC){
 _courseChanged=true;
+/* v22：先填充课程下拉选项，否则 value 设不上（选项里还没这个 id） */
+try{if(typeof updateCourseFilters==='function')updateCourseFilters()}catch(e){}
 var _tf=$('trainingCourseFilter'),_af=$('adminCourseFilter');
 if(_tf){_tf.value=_newC;if(_newC)_tf.style.display='';}
 if(_af){_af.value=_newC;if(_newC)_af.style.display='';}
@@ -6624,6 +6816,13 @@ if(moved>0)saveTrainingData(all,adminId);
 return moved;
 }
 function saveGradeTiers(){
+/* v22：档次变化会改变所有人的折算分，保存后重建汇总 */
+try{
+if(currentUser&&currentUser.isAdmin){
+var _scp2=getAdminScope(currentUser.id);
+scheduleRebuildSummary(currentUser.isSuperAdmin?(getCourseFilterAdminId()||currentUser.id):currentUser.id,_scp2.school||'',(_scp2.all?'':(_scp2.cls||'')));
+}
+}catch(e){}
 if(!currentUser||!currentUser.isAdmin)return;
 var draft=collectGradeTierDraft();
 if(draft.length<GRADE_TIER_MIN){showToast('至少保留 '+GRADE_TIER_MIN+' 个档次','error');return}
