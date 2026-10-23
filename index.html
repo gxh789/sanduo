@@ -5723,6 +5723,18 @@ schHtml+='<option value="'+esc(s)+'"'+(s===cur.school?' selected':'')+'>'+esc(s)
 });
 var clsHtml=buildScopeClassOptions(cur.all?'':cur.cls);
 var courseLabel=getAdminScopeCourseLabel();
+/* v21.4：超管在后台切换时可同时更换科目 */
+var courseOptsHtml='';
+if(currentUser.isSuperAdmin){
+var _adm=loadAdmins();
+var _curCourse=getCourseFilterAdminId()||'';
+courseOptsHtml='<option value="">📚 全部科目（所有课程）</option>';
+Object.keys(_adm).forEach(function(k){
+if(!k||k==='adminId')return;
+var _a=_adm[k]||{};
+courseOptsHtml+='<option value="'+esc(k)+'"'+(k===_curCourse?' selected':'')+'>'+esc((_a.name||k)+' · '+(_a.courseName||'未命名课程'))+'</option>';
+});
+}
 var ov=document.createElement('div');
 ov.id='adminScopeOverlay';
 ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px';
@@ -5735,7 +5747,10 @@ ov.innerHTML='<div style="background:#fff;border-radius:16px;padding:26px 30px;m
 +'<div style="margin-bottom:14px"><label style="display:block;font-size:13px;color:#666;margin-bottom:6px">班级</label>'
 +'<select id="adminScopeClass" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:15px">'+clsHtml+'</select></div>'
 +'<div style="margin-bottom:18px"><label style="display:block;font-size:13px;color:#666;margin-bottom:6px">科目</label>'
-+'<div style="padding:10px 12px;background:#f5f7fb;border-radius:8px;font-size:14px;color:#455a64">'+esc(courseLabel)+'</div></div>'
++(currentUser.isSuperAdmin
+ ? '<select id="adminScopeCourse" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:15px">'+courseOptsHtml+'</select>'
+ : '<div style="padding:10px 12px;background:#f5f7fb;border-radius:8px;font-size:14px;color:#455a64">'+esc(courseLabel)+'</div>')
++'</div>'
 +'<div style="display:flex;gap:12px;justify-content:center">'
 +'<button onclick="cancelAdminScope()" style="padding:10px 20px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#666;font-size:14px;cursor:pointer">取消（保留上次定位）</button>'
 +'<button onclick="confirmAdminScope()" style="padding:10px 24px;border:none;border-radius:8px;background:linear-gradient(135deg,#1a237e,#3949ab);color:#fff;font-size:14px;cursor:pointer;font-weight:700">进入</button>'
@@ -5765,10 +5780,40 @@ var school=sch?normalizeSchoolName(sch.value):'';
 var clsVal=clsSel?(clsSel.value||''):'';
 if(clsVal==='__custom__')clsVal='';
 clsVal=normalizeClassName(clsVal);
+/* v21.4：超管在此弹窗里换科目 → 同步课程筛选并重新加载 */
+var _courseChanged=false;
+if(currentUser.isSuperAdmin){
+var _cs=$('adminScopeCourse');
+if(_cs){
+var _newC=_cs.value||'';
+var _oldC=getCourseFilterAdminId()||'';
+if(_newC!==_oldC){
+_courseChanged=true;
+var _tf=$('trainingCourseFilter'),_af=$('adminCourseFilter');
+if(_tf){_tf.value=_newC;if(_newC)_tf.style.display='';}
+if(_af){_af.value=_newC;if(_newC)_af.style.display='';}
+/* 同步刷新顶部导航文字 */
+try{
+var _adm2=loadAdmins();
+var _ai=_newC?(_adm2[_newC]||{}):{};
+var _cn=_newC?(_ai.courseName||'实训课程'):'全部科目';
+var _catId=_newC?(_ai.category||''):'';
+var _ci=CATEGORIES.find(function(c){return c.id===_catId})||{icon:'📚',name:'全部'};
+var _nav=$('navTabs');
+if(_nav&&typeof adminTabsHTML==='function'){
+_nav.innerHTML=adminTabsHTML(_ci.icon+' '+_ci.name+'类 · '+_cn);
+if(typeof bindNavTabs==='function')bindNavTabs();
+}
+}catch(e){}
+}
+}
+}
 var scope=setAdminScope(currentUser.id,{school:school,cls:clsVal,all:!clsVal});
 try{applyScopeToFilters(scope)}catch(e){console.error('applyScopeToFilters',e)}
 try{refreshPanelsForScope()}catch(e){console.error('refreshPanelsForScope',e)}
 showToast('已定位：'+(school||'全部学校')+' · '+(clsVal||'全部班级'),'success');
+/* v21.4：科目变了必须重新拉数据，否则面板还是旧课程的 */
+if(typeof _courseChanged!=='undefined'&&_courseChanged){try{loadAdminData()}catch(e){console.error('reload after course change',e)}}
 _finishAdminScope(true);
 }
 /* 把定位同步到上方下拉框，保证「看到的筛选条件」与「实际生效的定位」一致 */
