@@ -4866,8 +4866,8 @@ function applySummaries(sums){
     var map={};
     hit.forEach(function(d){
       (d.students||[]).forEach(function(s){
-        var sid=s.name;
-        if(map[sid])return;
+        var sid=String(s.name||'').trim();   /* v22.7：去空格，避免同名算两次 */
+        if(!sid||map[sid])return;
         map[sid]={id:sid,name:s.name,cls:s.cls||d.cls||'',school:s.school||d.school||'',
           records:[], totalQuiz:(s.totalQuiz||0), totalQ:(s.totalQ||0), totalC:(s.totalC||0), totalSc:(s.totalSc||0),
           _precomputed:{composite:s.composite,processAvg:s.processAvg,finalAvg:s.finalAvg,
@@ -5961,7 +5961,8 @@ function migrateToSummaries(){
         var sch=st.school||'';
         var cls2=st.cls||'';
         if(cls2==='管理后台'||cls2==='未知')return;   /* v22.3：老师账号/未知记录不算学生 */
-        if(!cls2)cls2='未分班';                       /* v22.3：没填班级的归入「未分班」，不能丢 */
+        if(!cls2)cls2='未分班';
+        else{try{cls2=canonicalClass(cls2)}catch(e){}}   /* v22.7：'机电232' 与 '机电232班' 归并为同一个班，避免重复计数 */
         var key=cid+'|'+sch+'|'+cls2;
         if(!groups[key]){groups[key]={adminId:cid,school:sch,cls:cls2};order.push(key)}
       });
@@ -5970,9 +5971,11 @@ function migrateToSummaries(){
     var i=0;
     function step(){
       if(i>=order.length){
-        showToast('已整理 '+order.length+' 个班级汇总','success');
-        if(cs){cs.textContent='☁️';cs.title='汇总已生成'}
-        loadAdminData();
+        showToast('已整理 '+order.length+' 个班级汇总，正在切换为汇总视图…','success');
+        if(cs){cs.textContent='🔄';cs.title='汇总已生成，正在重新加载'}
+        /* v22.7：整理过程中表格用的是「明细」（同一人可能被重复计数，数字会虚高）。
+           这里稍等再按汇总重载，避免用户看到 187→100 的跳变。 */
+        setTimeout(function(){try{loadAdminData()}catch(e){console.error('reload after migrate',e)}},1200);
         return;
       }
       var g=groups[order[i]];
