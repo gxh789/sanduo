@@ -1736,37 +1736,77 @@ function fetchAllApis(apiQueue,onPage,onDone,opts){
   var maxPages=opts.maxPages||CONFIG.CLOUD_MAX_PAGES;
   var retryMax=opts.retryMax||2;
   var retryDelay=opts.retryDelay||2000;
-  var pageDelay=opts.pageDelay||0;
   var timeout=opts.timeout||CONFIG.REQUEST_TIMEOUT_MS;
   var shouldAbort=opts.shouldAbort||function(){return false};
+  /* v21.5：服务端每页硬上限 200 条、单次请求 6~8 秒。
+     原来逐页串行，651 条要 4 次×6s≈24s；改为第 1 页拿 total 后其余页并发拉取。 */
+  var CONCURRENCY=3;
   var pending=apiQueue.length;
   if(pending===0){if(onDone)onDone();return}
+  function finishOne(){if(--pending===0&&onDone)onDone()}
+
   apiQueue.forEach(function(apiObj){
-    (function fetchPage(page,retry){
-      if(shouldAbort()){if(--pending===0&&onDone)onDone();return}
-      var controller=new AbortController();
-      var t=setTimeout(function(){controller.abort()},timeout);
-      fetch(apiObj.READ_URL+'?page='+page+'&limit='+CONFIG.CLOUD_PAGE_LIMIT,
-        {method:'GET',headers:cloudHeaders(apiObj),signal:controller.signal})
-      .then(function(r){clearTimeout(t);return r.json()})
-      .then(function(res){
-        if(shouldAbort()){if(--pending===0&&onDone)onDone();return}
-        if(res.code===0&&res.data&&res.data.records){
-          apiObj.lastSync=Date.now();
-          try{if(onPage)onPage(res.data.records,apiObj)}
-          catch(e){console.error('fetchAllApis onPage error:',e)}
-          if(res.data.hasMore&&page<maxPages){
-            setTimeout(function(){fetchPage(page+1,0)},pageDelay);
-          }else{if(--pending===0&&onDone)onDone()}
-        }else{if(--pending===0&&onDone)onDone()}
-      })
-      .catch(function(e){
-        clearTimeout(t);
-        if(shouldAbort()){if(--pending===0&&onDone)onDone();return}
-        if(retry<retryMax){setTimeout(function(){fetchPage(page,retry+1)},retryDelay)}
-        else{if(--pending===0&&onDone)onDone()}
+    function reqPage(page){
+      return new Promise(function(resolve){
+        var controller=new AbortController();
+        var t=setTimeout(function(){controller.abort()},timeout);
+        fetch(apiObj.READ_URL+'?page='+page+'&limit='+CONFIG.CLOUD_PAGE_LIMIT,
+          {method:'GET',headers:cloudHeaders(apiObj),signal:controller.signal})
+        .then(function(r){clearTimeout(t);return r.json().then(function(j){return {ok:true,res:j}})},
+              function(e){clearTimeout(t);return {ok:false,err:e}})
+        .then(resolve)
+        .catch(function(e){clearTimeout(t);resolve({ok:false,err:e})});
       });
-    })(1,0);
+    }
+    /* 业务成功才算成功：HTTP 200 但 code!=0 也要重试，否则那一页数据会静默丢失 */
+    function isGoodPage(r){
+      return !!(r&&r.ok&&r.res&&r.res.code===0&&r.res.data&&r.res.data.records);
+    }
+    function reqWithRetry(page,retry){
+      return reqPage(page).then(function(r){
+        if(isGoodPage(r))return r;
+        if(retry<retryMax){
+          return new Promise(function(rs){setTimeout(function(){rs(reqWithRetry(page,retry+1))},retryDelay)});
+        }
+        return r;
+      });
+    }
+    function takePage(data){
+      if(!data||!data.records)return 0;
+      apiObj.lastSync=Date.now();
+      try{if(onPage)onPage(data.records,apiObj)}catch(e){console.error('fetchAllApis onPage error:',e)}
+      return data.records.length||0;
+    }
+
+    reqWithRetry(1,0).then(function(r){
+      if(shouldAbort()){finishOne();return}
+      if(!r||!r.ok||!r.res||r.res.code!==0||!r.res.data||!r.res.data.records){finishOne();return}
+      var d1=r.res.data;
+      var got=takePage(d1);
+      var total=d1.total||got;
+      var totalPages=got?Math.ceil(total/got):1;
+      if(totalPages>maxPages)totalPages=maxPages;
+      if(totalPages<=1||!d1.hasMore){finishOne();return}
+
+      var pages=[];for(var p=2;p<=totalPages;p++)pages.push(p);
+      var idx=0,running=0,done=0,totalN=pages.length;
+      function pump(){
+        if(shouldAbort()){if(running===0)finishOne();return}
+        while(running<CONCURRENCY&&idx<pages.length){
+          (function(pg){
+            running++;
+            reqWithRetry(pg,0).then(function(rr){
+              running--;
+              if(rr&&rr.ok&&rr.res&&rr.res.code===0&&rr.res.data){takePage(rr.res.data)}
+              done++;
+              if(done>=totalN){finishOne()}else{pump()}
+            });
+          })(pages[idx++]);
+        }
+        if(idx>=pages.length&&running===0&&done<totalN){finishOne()}
+      }
+      pump();
+    });
   });
 }
 
