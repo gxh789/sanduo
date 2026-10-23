@@ -4869,6 +4869,7 @@ function applySummaries(sums){
         var sid=s.name;
         if(map[sid])return;
         map[sid]={id:sid,name:s.name,cls:s.cls||d.cls||'',school:s.school||d.school||'',
+          records:[], totalQuiz:(s.totalQuiz||0), totalQ:(s.totalQ||0), totalC:(s.totalC||0), totalSc:(s.totalSc||0),
           _precomputed:{composite:s.composite,processAvg:s.processAvg,finalAvg:s.finalAvg,
                         theoryAvg:s.theoryAvg,alert:s.alert},_summaryAt:d.updatedAt||''};
       });
@@ -5900,13 +5901,16 @@ function buildClassSummary(adminId,school,cls){
     updatedAt:new Date().toISOString(),
     studentCount:list.length,
     students:list.map(function(s){
+      var _m=(typeof adminStudentMap!=='undefined'&&adminStudentMap)?adminStudentMap[s.name]||{}:{};
       return {
         name:s.name, cls:(cls||s.cls||''), school:(school||s.school||''),
         composite:(typeof s.composite==='number'?s.composite:null),
         processAvg:(typeof s.processAvg==='number'?s.processAvg:null),
         finalAvg:(typeof s.finalAvg==='number'?s.finalAvg:null),
         theoryAvg:(typeof s.theoryAvg==='number'?s.theoryAvg:null),
-        alert:s.alert||'', safePass:!!s.safePass
+        alert:s.alert||'', safePass:!!s.safePass,
+        /* v22.6：把答题统计一起存进汇总，管理端列表才能显示次数/总数/正确率 */
+        totalQuiz:_m.totalQuiz||0, totalQ:_m.totalQ||0, totalC:_m.totalC||0, totalSc:_m.totalSc||0
       };
     })
   };
@@ -6334,14 +6338,14 @@ var start=(page-1)*ADMIN_STUDENT_PAGE_SIZE;
 var end=Math.min(start+ADMIN_STUDENT_PAGE_SIZE,total);
 var pageStudents=students.slice(start,end);
 var html='<div style="margin-bottom:8px;font-size:13px;color:var(--text-secondary)">共 '+total+' 名学生，当前第 '+page+'/'+totalPages+' 页</div>';
-html+='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="history-table"><thead><tr><th>姓名</th><th>班级</th><th>学校</th><th>专业大类</th><th title="汇总模式下不统计答题明细">答题次数</th><th title="汇总模式下不统计答题明细">答题总数</th><th title="汇总模式下不统计答题明细">正确率</th><th>平均分</th><th>操作</th></tr></thead><tbody>';
+html+='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="history-table"><thead><tr><th>姓名</th><th>班级</th><th>学校</th><th>专业大类</th><th>答题次数</th><th>答题总数</th><th>正确率</th><th>平均分</th><th>操作</th></tr></thead><tbody>';
 pageStudents.forEach(function(st){
 var avg=st.totalQuiz>0?Math.round(st.totalSc/st.totalQuiz):0;
 var acc=st.totalQ>0?Math.round(st.totalC/st.totalQ*100):0;
 var badgeClass=avg>=90?'excellent':avg>=80?'good':avg>=60?'average':'poor';
 var stCat=getStudentCategory(st.id||st.name);
 var stCatInfo=CATEGORIES.find(function(c){return c.id===stCat})||{icon:'📚',name:'未设'};
-html+='<tr><td><strong>'+esc(st.name)+'</strong>'+(isNewlyAddedStudent(st)?' <span style="font-size:10px;padding:1px 5px;border-radius:8px;background:#e8f5e9;color:#2e7d32;white-space:nowrap">🆕 新添加</span>':'')+'</td><td>'+esc(st.cls)+'</td><td>'+esc(getStudentSchool(st.id||st.name))+'</td><td><span style="font-size:12px">'+stCatInfo.icon+' '+esc(stCatInfo.name)+'</span></td><td title="汇总模式下不统计答题明细">—</td><td title="汇总模式下不统计答题明细">—</td><td title="汇总模式下不统计答题明细">—</td><td><span class="score-badge '+badgeClass+'">'+avg+'分</span></td><td><button class="btn btn-outline btn-sm" onclick="showAdminProfile(\''+escJs(st.id)+'\')">👤</button></td></tr>' /* t11.0：XSS/注入转义 */
+html+='<tr><td><strong>'+esc(st.name)+'</strong>'+(isNewlyAddedStudent(st)?' <span style="font-size:10px;padding:1px 5px;border-radius:8px;background:#e8f5e9;color:#2e7d32;white-space:nowrap">🆕 新添加</span>':'')+'</td><td>'+esc(st.cls)+'</td><td>'+esc(getStudentSchool(st.id||st.name))+'</td><td><span style="font-size:12px">'+stCatInfo.icon+' '+esc(stCatInfo.name)+'</span></td><td>'+st.totalQuiz+'次</td><td>'+st.totalQ+'题</td><td>'+acc+'%</td><td><span class="score-badge '+badgeClass+'">'+avg+'分</span></td><td><button class="btn btn-outline btn-sm" onclick="showAdminProfile(\''+escJs(st.id)+'\')">👤</button></td></tr>' /* t11.0：XSS/注入转义 */
 });
 html+='</tbody></table></div>';
 if(totalPages>1){
@@ -7805,7 +7809,26 @@ else{showToast('同步失败','error')}
 function showAdminProfile(studentId){
 var st=adminStudentMap[studentId];
 if(!st){showToast('学生数据不存在','error');return}
-var records=st.records;
+var records=st.records||[];
+/* v22.6：汇总模式下没有答题明细，点画像时按需拉取该学生的记录（只拉 quiz_result，1~2 页） */
+if(!records.length){
+showToast('正在加载该学生的答题记录…','success');
+try{
+fetchAllApis([CLOUD2],function(recs){
+(recs||[]).forEach(function(r){
+if(r.recordType!=='quiz_result')return;
+var d=r.data||{};
+var sid2=d.studentName||d.studentId||'';
+if(sid2!==studentId&&String(d.studentId)!==String(studentId))return;
+st.records.push(r);
+});
+},function(){
+if(!st.records.length){showToast('该学生还没有答题记录','error');return}
+try{showAdminProfile(studentId)}catch(e){console.error('profile render error:',e)}
+},{maxPages:2,recordType:'quiz_result',timeout:12000,retryMax:1});
+}catch(e){console.error('profile fetch error:',e);showToast('加载失败，请重试','error')}
+return;
+}
 var ds={};dims.forEach(function(d){ds[d.id]={c:0,n:0}});
 records.forEach(function(cr){var d=cr.data||{};if(d.details&&Array.isArray(d.details)){d.details.forEach(function(det){if(ds[det.chId]){ds[det.chId].n+=1;if(det.ok)ds[det.chId].c+=1}})}});
 var dimScores={};dims.forEach(function(d){
