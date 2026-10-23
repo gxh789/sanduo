@@ -1965,7 +1965,8 @@ safeSetItem('plc_training_scores_'+adminId,jsonStr);
 try{
 if(currentUser&&currentUser.isAdmin){
 var _scp=getAdminScope(currentUser.id);
-scheduleRebuildSummary(adminId,_scp.school||'',(_scp.all?'':(_scp.cls||'')));
+/* v22.5：只有定位到具体班级时才重建；"全部班级"无法确定目标，会写出 cls 为空的脏汇总 */
+if(!_scp.all&&_scp.cls){scheduleRebuildSummary(adminId,_scp.school||'',_scp.cls)}
 }
 }catch(e){console.warn('schedule summary error:',e)}
 if(currentUser&&currentUser.isAdmin){
@@ -5934,13 +5935,15 @@ function migrateToSummaries(){
   if(!confirm('将把现有成绩明细整理为「班级汇总」，只需执行一次，约需 1~2 分钟。\n\n整理期间请保持页面打开。是否继续？'))return;
   var cs=$('cloudStatus');
   showToast('正在加载全量明细，请稍候（约需 30 秒）…','success');
-  /* v22.2：必须强制走明细 —— 若读汇总，会基于上次的汇总再汇总，人数越迁越少 */
-  adminLoading=true;
-  try{__loadAdminDataSlow()}catch(e){adminLoading=false;console.error('migrate load error:',e);showToast('加载失败，请重试','error');return}
+  /* v22.2：必须强制走明细 —— 若读汇总，会基于上次的汇总再汇总，人数越迁越少。
+     注意：__loadAdminDataSlow 开头有 if(adminLoading) return，所以这里绝不能预设 adminLoading=true。 */
+  try{__loadAdminDataSlow()}catch(e){console.error('migrate load error:',e);showToast('加载失败，请重试','error');return}
   var waited=0;
   var timer=setInterval(function(){
     waited+=1000;
+    if(waited<5000)return;                                          /* 给它时间真正开始 */
     if(adminLoading&&waited<180000)return;
+    if(!Object.keys(adminStudentMap||{}).length&&waited<60000)return; /* 还没出数据，继续等 */
     clearInterval(timer);
     var groups={},order=[];
     try{
@@ -5949,7 +5952,8 @@ function migrateToSummaries(){
         var sid=st.id||st.name;
         var cid='';
         try{cid=getStudentCourse(sid)||''}catch(e){cid=''}
-        if(!cid)return;
+        /* v22.5：没选课的学生也要归组 —— 用当前定位的科目兜底，否则整批被跳过、一条汇总都写不出 */
+        if(!cid)cid=(currentUser.isSuperAdmin?(getCourseFilterAdminId()||currentUser.id):currentUser.id);
         var sch=st.school||'';
         var cls2=st.cls||'';
         if(cls2==='管理后台'||cls2==='未知')return;   /* v22.3：老师账号/未知记录不算学生 */
