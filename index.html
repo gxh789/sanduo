@@ -403,7 +403,7 @@ input,select,textarea{font-size:16px!important}
 <div class="card fade-in" id="adminSecRecords" style="display:none"><div class="card-title"><span class="icon-box" style="background:#e8f5e9;color:#2e7d32">📋</span> 全部答题记录</div>
 <div id="adminAllRecords"></div></div>
 
-<div class="card fade-in" id="adminSecAccount" style="border-left:4px solid #7b1fa2"><div class="card-title"><span class="icon-box" style="background:#f3e5f5;color:#7b1fa2">🔑</span> 学生账户管理 <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:8px">查看学生登录密码、重置密码</span></div>
+<div class="card fade-in" id="adminSecAccount" style="border-left:4px solid #7b1fa2"><div class="card-title"><span class="icon-box" style="background:#f3e5f5;color:#7b1fa2">🔑</span> 学生账户管理 <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:8px">查看密码状态、重置密码（出于安全不明文显示）</span></div>
 <div id="adminAccountList"></div></div>
 
 <div class="card fade-in" style="border-left:4px solid #e91e63" id="adminManageCard"><div class="card-title"><span class="icon-box" style="background:#fce4ec;color:#e91e63">👤</span> 管理员管理 <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:8px">添加/删除管理员（仅超级管理员可用）</span></div>
@@ -6425,15 +6425,26 @@ function renderAdminAccounts(page){
 if(!page)page=accountPage;
 accountPage=page;
 var userPins=safeJsonParse(strg.getItem('plc_user_pins'),{});
-var registeredNames=safeJsonParse(strg.getItem('plc_user_names'),[]);
+var legacyRegisteredNames=safeJsonParse(strg.getItem('plc_user_names'),[]);
 var container=$('adminAccountList');
 if(!container)return;
-var courseFilterAdmin=getCourseFilterAdminId();
+/* v23.1：账户名单以「当前学生名单」为主，本机注册名单只作补充。
+   班级汇总模式下不再执行云端 user_pins 合并，若只读本机名单，换设备/清缓存后这里会空白。 */
+var _nameSet={};
+Object.keys(adminStudentMap||{}).forEach(function(n){if(n&&n!=='admin')_nameSet[n]=true});
+(legacyRegisteredNames||[]).forEach(function(n){if(n&&n!=='admin')_nameSet[n]=true});
+var registeredNames=Object.keys(_nameSet);
 /* v21：科目 + 学校 + 班级 三重过滤统一走 studentInAdminScope */
 registeredNames=registeredNames.filter(function(name){return studentInAdminScope(scopeStubForName(name))});
 registeredNames=registeredNames.filter(function(name){return isStudentInCategory(name)});
+registeredNames.sort(function(a,b){
+var sa=(adminStudentMap&&adminStudentMap[a])||{},sb=(adminStudentMap&&adminStudentMap[b])||{};
+var ca=sa.cls||'未分班',cb=sb.cls||'未分班';
+if(ca!==cb)return ca.localeCompare(cb,'zh-CN');
+return a.localeCompare(b,'zh-CN');
+});
 if(!registeredNames.length){
-container.innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-icon">📭</div><h3>暂无学生账户</h3><p>当前科目下暂无注册学生</p></div>';
+container.innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-icon">📭</div><h3>暂无学生账户</h3><p>当前定位下还没有学生，请检查学校/班级，或等待学生登录并选课</p></div>';
 return;
 }
 var total=registeredNames.length;
@@ -6452,10 +6463,13 @@ var cls=stInfo?stInfo.cls:'未知'; /* t11.0 修复：恢复 cls 变量定义（
 var stCat=getStudentCategory(name);
 var stCatInfo=CATEGORIES.find(function(c){return c.id===stCat})||{icon:'📚',name:'未设'};
 var isDefault=storedPin&&(storedPin===hashPin('0000')||storedPin==='0000'); /* t11.0：兼容新旧格式 */
-var statusHtml=isDefault?'<span style="color:#ff6d00;font-weight:600">⚠️ 默认密码</span>':'<span style="color:#0d904f">✅ 已设置</span>';
+/* v23.1：汇总模式/新设备可能还没同步到该生密码，明确提示而不是误标「已设置」 */
+var statusHtml=!storedPin
+?'<span style="color:#e37400;font-weight:600" title="本设备尚未同步该生密码，可点右侧重置为0000">⚠️ 未同步</span>'
+:(isDefault?'<span style="color:#ff6d00;font-weight:600">⚠️ 默认密码</span>':'<span style="color:#0d904f">✅ 已设置</span>');
 var nameEsc=esc(name),clsEsc=esc(cls); /* t11.0：XSS转义 */
 /* t11.0：不再明文展示密码，统一显示掩码（原直接输出明文密码属高危反模式） */
-html+='<tr><td><strong>'+nameEsc+'</strong></td><td>'+clsEsc+'</td><td>'+esc(getStudentSchool(name))+'</td><td><span style="font-size:12px">'+stCatInfo.icon+' '+esc(stCatInfo.name)+'</span></td><td style="font-family:monospace;font-size:16px;letter-spacing:4px;color:#7b1fa2;font-weight:700">••••</td><td>'+statusHtml+'</td><td><button class="btn btn-outline btn-sm" onclick="showEditStudentSchoolModal('+escJs(name)+')" title="修改学校">🏫</button> <button class="btn btn-outline btn-sm" onclick="resetStudentPin(\''+escJs(name)+'\')">🔄</button></td></tr>';
+html+='<tr><td><strong>'+nameEsc+'</strong></td><td>'+clsEsc+'</td><td>'+esc(getStudentSchool(name))+'</td><td><span style="font-size:12px">'+stCatInfo.icon+' '+esc(stCatInfo.name)+'</span></td><td style="font-family:monospace;font-size:16px;letter-spacing:4px;color:#7b1fa2;font-weight:700">••••</td><td>'+statusHtml+'</td><td><button class="btn btn-outline btn-sm" onclick="showEditStudentSchoolModal('+escJs(name)+')" title="修改学校">🏫</button> <button class="btn btn-outline btn-sm" onclick="resetStudentPin(\''+escJs(name)+'\')" title="重置为0000">🔄</button></td></tr>';
 });
 html+='</tbody></table></div>';
 if(totalPages>1){
