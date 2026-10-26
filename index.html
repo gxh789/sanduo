@@ -4801,6 +4801,8 @@ finishAdminLogin(u,adminInfo);
 }
 
 function showSuperAdminCourseSelect(){
+/* v23.4：手机端双击会重复调用登录，这里防止创建两个同样的弹窗 */
+if(document.getElementById('superCourseSelectOverlay'))return;
 var admins=loadAdmins();
 var courses=[];
 Object.keys(admins).forEach(function(adminId){
@@ -4850,15 +4852,22 @@ modal.innerHTML='<div style="text-align:center;margin-bottom:20px">'+
 '💡 选「全部科目」= 加载所有课程的学生（数据多时较慢）；只查某一科请选中它，加载更快'+
 '</div>'+
 '<div style="display:flex;gap:12px;justify-content:center">'+
-'<button onclick="document.getElementById(\'superCourseSelectOverlay\').remove()" style="padding:10px 24px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#666;font-size:15px;cursor:pointer">取消</button>'+
+'<button onclick="cancelSuperCourseSelect()" style="padding:10px 24px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#666;font-size:15px;cursor:pointer">取消</button>'+
 '<button onclick="confirmSuperCourseSelect()" style="padding:10px 24px;border:none;border-radius:8px;background:linear-gradient(135deg,#1a237e,#3949ab);color:#fff;font-size:15px;cursor:pointer;font-weight:700">确认进入</button>'+
 '</div>';
 overlay.appendChild(modal);
 document.body.appendChild(overlay);
-overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove()});
+overlay.addEventListener('click',function(e){if(e.target===overlay)cancelSuperCourseSelect()});
 window._superCourses=courses;
 /* t11.0-AI：后台补齐真实存在的班级，让新班级可以直接在下拉框里选到 */
 refreshKnownClassesFromCloud(function(){try{updateSuperClassOptions()}catch(e){}});
+}
+
+function cancelSuperCourseSelect(){
+var ov=$('superCourseSelectOverlay');if(ov)ov.remove();
+/* v23.5：超管已在 adminLogin 里写入 currentUser；取消若不退出，会停在“已登录但没进后台”的半个状态 */
+try{logout()}catch(e){console.warn('cancel super login logout error:',e)}
+try{if(typeof showAdminLogin==='function')setTimeout(showAdminLogin,60)}catch(e){}
 }
 
 function updateSuperClassOptions(){
@@ -4908,6 +4917,8 @@ else showToast('已选择：全部班级','info');
 }
 
 function confirmSuperCourseSelect(){
+/* v23.4：防双击确认（第二次时弹窗已被移除，读不到值会把筛选重置成空） */
+if(!document.getElementById('superCourseSelectOverlay'))return;
 var courseSelect=$('superCourseSelect');
 var classSelect=$('superClassSelect');
 /* v21.3：超管可选「全部科目」（默认），也可指定某一科；普通教师仍固定自己的科目 */
@@ -4932,7 +4943,9 @@ var courseName=selectedCourseId?(selectedAdmin.courseName||'实训课程'):'全�
 var catInfo=selectedCourseId?(CATEGORIES.find(function(c){return c.id===selectedAdmin.category})||{icon:'📚',name:''}):{icon:'📚',name:'全部'};
 var trainingFilter=$('trainingCourseFilter');
 var adminFilter=$('adminCourseFilter');
-if(trainingFilter){trainingFilter.value=selectedCourseId;trainingFilter.style.display=''}
+/* v23.5：先确保课程下拉有选项，否则 value 设不上会把选中的科目悄悄重置成「全部科目」 */
+try{if(typeof updateCourseFilters==='function')updateCourseFilters()}catch(e){}
+if(trainingFilter){trainingFilter.value=selectedCourseId;trainingFilter.style.display='';if(trainingFilter.value!==selectedCourseId)trainingFilter.value=''}
 if(adminFilter){adminFilter.value=selectedCourseId;adminFilter.style.display=''}
 /* t11.0-AI 修复：原来只在 selectedClass 非空时才写入上方筛选框，
    于是重新登录选「全部班级」时，上方筛选还停在上一次的班级，两边不同步。
@@ -6186,6 +6199,8 @@ function cancelAdminScope(){
 _finishAdminScope(false);
 }
 function confirmAdminScope(){
+/* v23.4：防双击确认导致第二次读到空值、把定位重置 */
+if(!document.getElementById('adminScopeOverlay'))return;
 var sch=$('adminScopeSchool');
 var clsSel=$('adminScopeClass');
 var school=sch?normalizeSchoolName(sch.value):'';
