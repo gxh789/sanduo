@@ -1675,7 +1675,7 @@ READ_URL:'https://www.edunav.cn/api/data-tasks/task_187ff1e5cb8a/records',
 syncing:false,
 lastSync:0
 };
-var CLOUD2_TYPES=['message_data','message_read','student_course','student_category','student_school','pet_data','quiz_result','user_pins','batch_send_log','training_scores_batch','class_summary']; /* v22：班级汇总与成绩同库 */ /* v20：学生学校归属走 CLOUD2 */ /* t11.0：training_scores_batch 迁移到 CLOUD2（容量充裕），CLOUD 已满 */
+var CLOUD2_TYPES=['message_data','message_read','student_course','student_category','student_school','pet_data','quiz_result','user_pins','batch_send_log','training_scores_batch','class_summary','student_deleted']; /* v23.2：删除墓碑 */ /* v22：班级汇总与成绩同库 */ /* v20：学生学校归属走 CLOUD2 */ /* t11.0：training_scores_batch 迁移到 CLOUD2（容量充裕），CLOUD 已满 */
 function getCloudForType(recordType){return CLOUD2_TYPES.indexOf(recordType)>=0?CLOUD2:CLOUD}
 function cloudHeaders(apiObj){apiObj=apiObj||CLOUD;return{'Authorization':'Bearer '+apiObj.API_KEY,'Content-Type':'application/json'}}
 
@@ -3964,19 +3964,151 @@ showToast('实训成绩保存成功！','success');
 
 function closeTrainingEditModal(){$('trainingEditModal').style.display='none';currentTrainingStudent=null;}
 
-function deleteTrainingStudent(studentId,studentName){
-if(!confirm('确定要删除学生「'+studentName+'」的实训考核数据吗？此操作不可恢复！'))return;
-var courseFilterAdmin=getCourseFilterAdminId();
-var adminId=courseFilterAdmin||currentUser.id;
-var all=getTrainingData(adminId);
-delete all[studentId];
-saveTrainingData(all,adminId);
-if(adminStudentMap&&adminStudentMap[studentId]){
-delete adminStudentMap[studentId];
+/* ================= v23.3：学生记录物理删除 =================
+   edunav 支持 DELETE /records/{id}。删除学生时不是写“墓碑”，而是：
+   1) 先写新的聚合记录（成绩批次 / 密码表），去掉该学生，保留其他学生；
+   2) 再按记录 ID 删除所有包含该学生的旧记录；
+   3) 最后清理本机缓存与名单。
+   这样刷新、换设备、重新登录都不会把学生带回来。 */
+function _purgeStatus(t,title){var cs=$('cloudStatus');if(cs){cs.textContent=t;cs.title=title||''}}
+
+function _purgeDeleteOne(item,retry,cb){
+var url=String(item.api.READ_URL||'').replace(/\/+$/,'')+'/'+encodeURIComponent(item.rec.id);
+var controller=new AbortController();
+var timer=setTimeout(function(){controller.abort()},15000);
+fetch(url,{method:'DELETE',headers:cloudHeaders(item.api),signal:controller.signal})
+.then(function(r){clearTimeout(timer);return r.json()})
+.then(function(j){
+if(j&&j.code===0){cb(true);return}
+if(retry<1){setTimeout(function(){_purgeDeleteOne(item,retry+1,cb)},400);return}
+cb(false);
+})
+.catch(function(e){
+clearTimeout(timer);
+if(retry<1){setTimeout(function(){_purgeDeleteOne(item,retry+1,cb)},400);return}
+cb(false);
+});
 }
-renderTrainingTable();
-$('trainingChartsContainer').innerHTML='';
-showToast('已删除学生「'+studentName+'」的实训考核数据','success');
+
+function _purgeDeleteAll(list,done){
+var total=list.length,idx=0,running=0,finished=0,failed=0,ended=false;
+function finish(){if(ended)return;ended=true;done(failed,total)}
+function next(){
+if(idx>=total&&running===0){finish();return}
+while(running<4&&idx<total){
+(function(item){
+running++;
+_purgeDeleteOne(item,0,function(ok){
+running--;finished++;
+if(!ok)failed++;
+if(finished%10===0||finished===total){_purgeStatus('🗑️ '+finished+'/'+total,'正在物理删除云端记录…')}
+next();
+});
+})(list[idx++]);
+}
+}
+if(!total){finish();return}
+next();
+}
+
+function purgeStudentEverywhere(studentName,studentId,adminId,cb){
+var nm=String(studentName||'').trim();
+var sid=String(studentId||nm).trim();
+if(!nm){if(cb)cb(false,0,0);return}
+_purgeStatus('🔎','正在扫描该学生的云端记录…');
+var raw=[];
+try{
+fetchAllApis([CLOUD,CLOUD2],function(records,apiObj){
+(records||[]).forEach(function(r){if(r&&r.id)raw.push({rec:r,api:apiObj})});
+},function(){
+var seen={},list=[];
+raw.forEach(function(x){var k=(x.api.READ_URL||'')+'|'+x.rec.id;if(!seen[k]){seen[k]=1;list.push(x)}});
+var direct=[],summaries=[],training=[],pins=[];
+list.forEach(function(item){
+var r=item.rec,d=r.data||{};
+var isDirect=(d.studentName===nm||d.studentId===nm||d.targetStudentName===nm||d.targetStudentId===nm||String(d.studentId)===sid);
+var isSummary=(r.recordType==='class_summary'&&(d.students||[]).some(function(s){return String(s.name||'').trim()===nm||String(s.name||'').trim()===sid}));
+var isTraining=(r.recordType==='training_scores_batch'&&d.allData&&(d.allData[nm]||d.allData[sid]));
+var isPins=(r.recordType==='user_pins'&&d.pins&&(d.pins[nm]||d.pins[sid]));
+if(isSummary)summaries.push(item);
+else if(isTraining)training.push(item);
+else if(isPins)pins.push(item);
+else if(isDirect)direct.push(item);
+});
+var total=direct.length+summaries.length+training.length+pins.length;
+if(!total){_purgeStatus('☁️','未找到云端记录');showToast('云端没有找到该学生的记录','info');if(cb)cb(true,0,0);return}
+if(!confirm('在云端找到 '+total+' 条与该生相关的记录（答题、宠物、选课、密码、成绩/汇总）。\n\n确认后将逐条物理删除，不可恢复。继续？')){_purgeStatus('☁️','已取消删除');if(cb)cb(false,0,0);return}
+
+var writes=[];
+var trainingAdmins={};
+training.forEach(function(x){var aid=(x.rec.data&&x.rec.data.adminId)||adminId||'';if(aid)trainingAdmins[aid]=true});
+Object.keys(trainingAdmins).forEach(function(aid){
+var merged={};
+list.filter(function(x){return x.rec.recordType==='training_scores_batch'&&((x.rec.data&&x.rec.data.adminId)||aid)===aid})
+.sort(function(a,b){return String((a.rec.submittedAt||a.rec.createdAt||'')).localeCompare(String((b.rec.submittedAt||b.rec.createdAt||'')))})
+.forEach(function(x){
+var ad=(x.rec.data&&x.rec.data.allData)||{};
+Object.keys(ad).forEach(function(k){if(k!==nm&&k!==sid)merged[k]=ad[k]});
+});
+if(Object.keys(merged).length){writes.push({kind:'training',adminId:aid,data:merged})}
+});
+if(pins.length){
+var mergedPins={},mergedNames=[];
+list.filter(function(x){return x.rec.recordType==='user_pins'})
+.sort(function(a,b){return String((a.rec.submittedAt||a.rec.createdAt||'')).localeCompare(String((b.rec.submittedAt||b.rec.createdAt||'')))})
+.forEach(function(x){
+var d=x.rec.data||{};
+Object.keys(d.pins||{}).forEach(function(k){if(k!==nm&&k!==sid)mergedPins[k]=d.pins[k]});
+(d.names||[]).forEach(function(n){if(n!==nm&&n!==sid&&mergedNames.indexOf(n)<0)mergedNames.push(n)});
+});
+if(Object.keys(mergedPins).length||mergedNames.length){writes.push({kind:'pins',pins:mergedPins,names:mergedNames})}
+}
+
+function writeNext(i){
+if(i>=writes.length){_purgeStatus('🗑️','正在删除 '+total+' 条旧记录…');_purgeDeleteAll(direct.concat(summaries).concat(training).concat(pins),finish);return}
+var w=writes[i];
+var ok=function(success){
+if(!success){_purgeStatus('⚠️','准备新聚合记录失败，已中止删除');showToast('删除中止：无法写入更新后的成绩/密码记录','error');if(cb)cb(false,0,0);return}
+writeNext(i+1);
+};
+try{
+if(w.kind==='training')cloudWrite('training_scores_batch',{allData:w.data,adminId:w.adminId},ok,true);
+else cloudWrite('user_pins',{pins:w.pins,names:w.names},ok,true);
+}catch(e){console.error('purge write error:',e);ok(false)}
+}
+function finish(failed,count){
+if(failed){_purgeStatus('⚠️','部分记录删除失败');showToast('已删除 '+(count-failed)+' 条，'+failed+' 条失败，请重试','error');if(cb)cb(false,count-failed,failed);return}
+/* 本地同步清理，避免刷新前又从本地缓存冒出来 */
+try{
+var all=getTrainingData(adminId);delete all[studentId];safeSetItem('plc_training_scores_'+adminId,JSON.stringify(all));
+var names=safeJsonParse(strg.getItem('plc_user_names'),[]);names=(names||[]).filter(function(n){return n!==nm&&n!==sid});safeSetItem('plc_user_names',JSON.stringify(names));
+var pinMap=safeJsonParse(strg.getItem('plc_user_pins'),{});delete pinMap[nm];delete pinMap[sid];safeSetItem('plc_user_pins',JSON.stringify(pinMap));
+strg.removeItem('plc_student_course_'+nm);strg.removeItem('plc_student_course_'+sid);
+strg.removeItem('plc_student_category_'+nm);strg.removeItem('plc_student_category_'+sid);
+strg.removeItem('plc_user_school_'+nm);strg.removeItem('plc_user_school_'+sid);
+}catch(e){console.warn('purge local cleanup error:',e)}
+try{if(adminStudentMap){delete adminStudentMap[nm];delete adminStudentMap[sid]}}catch(e){}
+try{renderTrainingTable()}catch(e){}
+_purgeStatus('☁️','已物理删除 '+count+' 条记录');
+showToast('已从云端彻底删除该学生的 '+count+' 条记录','success');
+if(cb)cb(true,count,0);
+setTimeout(function(){try{if(currentUser&&currentUser.isAdmin)loadAdminData()}catch(e){}},900);
+}
+writeNext(0);
+},{maxPages:20,timeout:15000,retryMax:1});
+}catch(e){console.error('purge scan error:',e);if(cb)cb(false,0,0)}
+}
+
+function deleteTrainingStudent(studentId,studentName){
+if(window.__purgeRunning){showToast('已有删除任务正在进行，请等它完成','info');return}
+if(!confirm('将从云端彻底删除学生「'+studentName+'」的全部记录（答题、宠物、选课、密码、实训成绩/汇总），不可恢复。\n\n继续？'))return;
+var adminId=getStudentCourse(studentId)||getCourseFilterAdminId()||currentUser.id;
+window.__purgeRunning=true;
+purgeStudentEverywhere(studentName,studentId,adminId,function(ok,count,failed){
+window.__purgeRunning=false;
+if(!ok&&!count){renderTrainingTable();return}
+if(ok){$('trainingChartsContainer').innerHTML=''}
+});
 }
 
 function login(){
@@ -4838,6 +4970,53 @@ showToast('教师登录成功','success');
 showAdminScopeModal(function(){loadAdminData()});
 }
 
+/* ================= v23.2：学生删除墓碑 =================
+   原来「删除学生」只删本地实训数据，学生再登录产生记录后又会被重建。
+   现在写一条 student_deleted 记录到云端，所有名单读取统一过滤，跨设备也生效。 */
+var DELETED_STUDENTS_KEY='plc_deleted_students_v1';
+window.__deletedStudents=window.__deletedStudents||{};
+window.__deletedIndexReady=false;
+function loadDeletedIndex(){
+if(window.__deletedIndexReady)return;
+try{
+var list=safeJsonParse(strg.getItem(DELETED_STUDENTS_KEY),[]);
+(list||[]).forEach(function(rec){indexDeletedRecord(rec)});
+}catch(e){}
+window.__deletedIndexReady=true;
+}
+function indexDeletedRecord(d){
+if(!d)return;
+var n=String(d.studentName||d.targetStudentName||d.studentId||'').trim();
+if(!n)return;
+window.__deletedStudents[n]=d;
+}
+function isStudentDeleted(name){
+loadDeletedIndex();
+var n=String(name||'').trim();
+return !!(n&&window.__deletedStudents[n]);
+}
+function markStudentDeleted(name,id,adminId,cb){
+var nm=String(name||'').trim();
+if(!nm){if(cb)cb(false);return}
+var rec={studentName:nm,studentId:id||nm,adminId:adminId||'',deletedAt:new Date().toISOString()};
+try{
+var list=safeJsonParse(strg.getItem(DELETED_STUDENTS_KEY),[]);
+list=(list||[]).filter(function(x){return x&&x.studentName!==nm});
+list.push(rec);
+safeSetItem(DELETED_STUDENTS_KEY,JSON.stringify(list));
+}catch(e){console.warn('save deleted local error:',e)}
+indexDeletedRecord(rec);
+try{cloudWrite('student_deleted',rec,function(ok){if(cb)cb(!!ok)},true)}catch(e){console.warn('save deleted cloud error:',e);if(cb)cb(false)}
+}
+function loadDeletedStudents(cb){
+loadDeletedIndex();
+try{
+fetchAllApis([CLOUD2],function(records){
+(records||[]).forEach(function(r){if(r.recordType==='student_deleted')indexDeletedRecord(r.data)});
+},function(){if(cb)cb()},{maxPages:2,recordType:'student_deleted',timeout:10000,retryMax:1});
+}catch(e){if(cb)cb()}
+}
+
 /* v22：先读「班级汇总」——命中就直接渲染，未命中回落明细（__loadAdminDataSlow） */
 function applySummaries(sums){
   try{
@@ -4867,7 +5046,7 @@ function applySummaries(sums){
     hit.forEach(function(d){
       (d.students||[]).forEach(function(s){
         var sid=String(s.name||'').trim();   /* v22.7：去空格，避免同名算两次 */
-        if(!sid||map[sid])return;
+        if(!sid||map[sid]||isStudentDeleted(sid))return;   /* v23.2：已删除学生不进名单 */
         map[sid]={id:sid,name:s.name,cls:s.cls||d.cls||'',school:s.school||d.school||'',
           records:[], totalQuiz:(s.totalQuiz||0), totalQ:(s.totalQ||0), totalC:(s.totalC||0), totalSc:(s.totalSc||0),
           _precomputed:{composite:s.composite,processAvg:s.processAvg,finalAvg:s.finalAvg,
@@ -4908,8 +5087,7 @@ function loadAdminData(){
     fetchAllApis([CLOUD2],function(records){
       (records||[]).forEach(function(r){if(r.recordType==='class_summary')buf.push(r)});
     },function(){
-      if(finished)return;finished=true;clearTimeout(guard);
-      adminLoading=false;
+      if(finished)return;finished=true;clearTimeout(guard);adminLoading=false;
       if(applySummaries(buf))return;
       try{__loadAdminDataSlow()}catch(e){console.error(e)}
     },{maxPages:2,recordType:'class_summary',timeout:10000,retryMax:1});
@@ -4939,6 +5117,7 @@ try{processAdminData()}catch(e){console.error('processAdminData error:',e);try{u
 function onAllComplete(){
 clearTimeout(loadTimer);
 window._rawForRoster=(adminAllRecords||[]).slice();   /* v22.4：过滤前留一份，补全学生名单要用（挂全局，跨函数可读） */
+(window._rawForRoster||[]).forEach(function(cr){if(cr.recordType==='student_deleted')indexDeletedRecord(cr.data)});   /* v23.2 */
 adminLoading=false;
 var adminIds={};
 var admins=loadAdmins();
@@ -4983,6 +5162,7 @@ if(r.recordType==='student_category')return true;
 /* v22.4：这些记录以前被整类丢掉，导致「只登录过、没答题」的学生在管理端完全看不到 */
 if(r.recordType==='pet_data')return true;
 if(r.recordType==='message_data'||r.recordType==='message_read')return true;
+if(r.recordType==='student_deleted')return true;   /* v23.2：删除墓碑必须能读到 */
 return false;
 });
 adminAllRecords=adminAllRecords.concat(filtered);
@@ -5019,7 +5199,7 @@ var quizRecords=adminAllRecords.filter(function(cr){
 var d=cr.data;if(!d||typeof d!=='object')return false;
 var sid=d.studentId||d.studentName||'';
 if(!sid||adminIdSet[sid])return false;
-if(cr.recordType==='training_scores_batch'||cr.recordType==='admins_config'||cr.recordType==='admin_config'||cr.recordType==='dims_config'||cr.recordType==='eval_config'||cr.recordType==='eval_score'||cr.recordType==='user_pins'||cr.recordType==='message_data'||cr.recordType==='message_read'||cr.recordType==='student_course'||cr.recordType==='student_category'||cr.recordType==='pet_data'||cr.recordType==='batch_send_log')return false;
+if(cr.recordType==='training_scores_batch'||cr.recordType==='admins_config'||cr.recordType==='admin_config'||cr.recordType==='dims_config'||cr.recordType==='eval_config'||cr.recordType==='eval_score'||cr.recordType==='user_pins'||cr.recordType==='message_data'||cr.recordType==='message_read'||cr.recordType==='student_course'||cr.recordType==='student_category'||cr.recordType==='pet_data'||cr.recordType==='batch_send_log'||cr.recordType==='student_deleted')return false;
 return true;
 });
 quizRecords.sort(function(a,b){return(b.submittedAt||b.createdAt||'').localeCompare(a.submittedAt||a.createdAt||'')});
@@ -5217,6 +5397,8 @@ adminStudentMap[sid]={name:localName,cls:localCls,school:'未知',id:sid,records
    再统一做一次班级补全，才能把新注册学生的班级正确显示出来。 */
 backfillStudentClasses();
 backfillStudentSchools(); /* v20：学校补全（存量学生归入靖边县职业教育中心） */
+/* v23.2：已删除学生不进入名单（跨设备墓碑已在上方索引） */
+Object.keys(adminStudentMap).forEach(function(n){if(isStudentDeleted(n))delete adminStudentMap[n]});
 Object.keys(adminStudentMap).forEach(function(sid){
 if(!allTraining[sid]){allTraining[sid]=createDefaultTrainingData(currentAdminId);}
 });
@@ -5802,6 +5984,7 @@ return '';
 /* 统一判定：科目 → 学校 → 班级 三重叠加。所有列学生的地方都用它。 */
 function studentInAdminScope(st){
 if(!st)return false;
+if(isStudentDeleted(st.name||st.id))return false;   /* v23.2：已删除学生一律不可见 */
 if(!currentUser||!currentUser.isAdmin)return false;
 var sid=st.id||st.name;
 /* ① 科目：普通教师只限自己的课；超管限当前选中的课程（未选=全部） */
@@ -6433,7 +6616,7 @@ if(!container)return;
 var _nameSet={};
 Object.keys(adminStudentMap||{}).forEach(function(n){if(n&&n!=='admin')_nameSet[n]=true});
 (legacyRegisteredNames||[]).forEach(function(n){if(n&&n!=='admin')_nameSet[n]=true});
-var registeredNames=Object.keys(_nameSet);
+var registeredNames=Object.keys(_nameSet).filter(function(n){return !isStudentDeleted(n)});   /* v23.2 */
 /* v21：科目 + 学校 + 班级 三重过滤统一走 studentInAdminScope */
 registeredNames=registeredNames.filter(function(name){return studentInAdminScope(scopeStubForName(name))});
 registeredNames=registeredNames.filter(function(name){return isStudentInCategory(name)});
