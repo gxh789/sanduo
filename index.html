@@ -4800,6 +4800,105 @@ finishAdminLogin(u,adminInfo);
 }
 }
 
+/* ================= v23.6：汇总模式下的配置补全 =================
+   班级汇总只包含成绩快照，不含 admins_config / dims_config / student_category 等配置。
+   以前直接走 processAdminData 时会顺带合并这些配置；启用汇总后必须单独补，否则：
+   - 超管只看到默认账号、课程列表不全
+   - 学生“专业大类”显示未设
+   - 评价指标/阶段配置丢失 */
+function mergeAdminsConfigToLocal(remote){
+if(!remote||typeof remote!=='object')return;
+var local=loadAdmins();
+var merged=Object.assign({},local);
+Object.keys(remote).forEach(function(k){
+if(!k||k==='adminId')return;
+if(!merged[k]){merged[k]=remote[k]}
+else{
+merged[k]=Object.assign({},merged[k],remote[k]);
+var lp=local[k]&&local[k].password;
+if(lp&&lp!==hashAdminPwd('0000')&&lp!=='0000'){merged[k].password=lp}
+}
+});
+safeSetItem('plc_admins',JSON.stringify(merged));
+}
+function refreshAdminsConfigFromEdunav(cb){
+try{
+fetchAllApis([CLOUD2],function(records){
+var latest=null,lt='';
+(records||[]).forEach(function(r){
+if(r.recordType!=='admins_config'||!r.data||!r.data.admins)return;
+var t=r.submittedAt||r.createdAt||'';
+if(!latest||t>lt){latest=r.data.admins;lt=t}
+});
+mergeAdminsConfigToLocal(latest);
+},function(){if(cb)cb()},{maxPages:2,recordType:'admins_config',timeout:12000,retryMax:1});
+}catch(e){if(cb)cb()}
+}
+function rebuildSuperCourseOptions(){
+var admins=loadAdmins(),courses=[];
+Object.keys(admins).forEach(function(adminId){
+var a=admins[adminId];if(!a.courseName)return;
+var ci=CATEGORIES.find(function(c){return c.id===a.category})||{icon:'📚',name:'未设'};
+courses.push({id:adminId,name:a.courseName,adminName:a.name,catName:ci.name,catIcon:ci.icon});
+});
+var sel=$('superCourseSelect');if(!sel)return;
+var prev=sel.value;
+var html='<option value="">📚 全部科目（所有课程）</option>';
+courses.forEach(function(c){html+='<option value="'+esc(c.id)+'">'+c.catIcon+' '+esc(c.catName)+'类 · '+esc(c.name)+' ('+esc(c.adminName||'')+')</option>'});
+sel.innerHTML=html;
+var exists=false;
+for(var i=0;i<sel.options.length;i++){if(sel.options[i].value===prev){exists=true;break}}
+sel.value=exists?prev:'';
+window._superCourses=courses;
+try{updateSuperClassOptions()}catch(e){}
+}
+
+function refreshAdminAuxConfigs(cb){
+var types=['dims_config','eval_config','student_category','student_course','student_school','user_pins'];
+var pending=types.length;
+function doneOne(){
+if(--pending>0)return;
+try{
+updateCourseFilters();
+updateClassFilters();
+renderAdminDashboard();
+renderTrainingTable();
+renderEvalControlPanel();
+if(typeof renderAdminStudents==='function'&&document.getElementById('adminStudentList'))renderAdminStudents(1);
+if(typeof renderAdminAccounts==='function'&&document.getElementById('adminAccountList'))renderAdminAccounts(1);
+}catch(e){console.warn('refresh aux render error:',e)}
+if(cb)cb();
+}
+types.forEach(function(type){
+try{
+fetchAllApis([CLOUD2],function(records){
+(records||[]).forEach(function(r){
+var d=r.data||{};
+if(r.recordType==='dims_config'&&d.dims&&Array.isArray(d.dims)){
+dims=d.dims;safeSetItem('plc_dims',JSON.stringify(d.dims));
+}else if(r.recordType==='eval_config'&&d.adminId){
+try{if(d.adminId===(getCourseFilterAdminId()||currentUser.id))applyEvalConfig(d)}catch(e){}
+}else if(r.recordType==='student_category'&&d.categoryId){
+var scid=d.targetStudentId||d.studentId||d.studentName;
+if(scid)safeSetItem('plc_student_category_'+scid,d.categoryId);
+}else if(r.recordType==='student_course'&&d.courseId){
+var coid=d.studentId||d.studentName;
+if(coid)safeSetItem('plc_student_course_'+coid,d.courseId);
+}else if(r.recordType==='student_school'&&d.school){
+var shid=d.targetStudentId||d.studentId||d.studentName;
+if(shid)safeSetItem('plc_user_school_'+shid,d.school);
+}else if(r.recordType==='user_pins'&&d.pins){
+var lp=safeJsonParse(strg.getItem('plc_user_pins'),{});
+Object.keys(d.pins).forEach(function(k){lp[k]=d.pins[k]});
+safeSetItem('plc_user_pins',JSON.stringify(lp));
+if(d.names){var ln=safeJsonParse(strg.getItem('plc_user_names'),[]);(d.names||[]).forEach(function(n){if(ln.indexOf(n)<0)ln.push(n)});safeSetItem('plc_user_names',JSON.stringify(ln))}
+}
+});
+},doneOne,{maxPages:2,recordType:type,timeout:12000,retryMax:1});
+}catch(e){doneOne()}
+});
+}
+
 function showSuperAdminCourseSelect(){
 /* v23.4：手机端双击会重复调用登录，这里防止创建两个同样的弹窗 */
 if(document.getElementById('superCourseSelectOverlay'))return;
@@ -4861,6 +4960,11 @@ overlay.addEventListener('click',function(e){if(e.target===overlay)cancelSuperCo
 window._superCourses=courses;
 /* t11.0-AI：后台补齐真实存在的班级，让新班级可以直接在下拉框里选到 */
 refreshKnownClassesFromCloud(function(){try{updateSuperClassOptions()}catch(e){}});
+/* v23.6：异步补管理员配置，避免新设备只看到默认账号/一个课程 */
+refreshAdminsConfigFromEdunav(function(){
+if(!$('superCourseSelectOverlay'))return;
+try{rebuildSuperCourseOptions()}catch(e){}
+});
 }
 
 function cancelSuperCourseSelect(){
@@ -5034,6 +5138,8 @@ function applySummaries(sums){
     var cs=$('cloudStatus');
     if(cs){var t=hit[0].updatedAt?new Date(hit[0].updatedAt).toLocaleString('zh-CN'):'';cs.textContent='☁️';cs.title='数据来自班级汇总'+(t?('（更新于 '+t+'）'):'')}
     showToast('已加载 '+hit.length+' 个班级汇总','success');
+    /* v23.6：汇总不含配置类记录，异步补管理员/指标/大类等，首屏不被拖慢 */
+    setTimeout(function(){try{refreshAdminAuxConfigs()}catch(e){console.warn('refresh aux error:',e)}},120);
     return true;
   }catch(e){console.error('applySummaries error:',e);return false}
 }
