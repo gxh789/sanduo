@@ -4823,7 +4823,7 @@ safeSetItem('plc_admins',JSON.stringify(merged));
 }
 function refreshAdminsConfigFromEdunav(cb){
 try{
-fetchAllApis([CLOUD2],function(records){
+fetchAllApis([CLOUD,CLOUD2],function(records){
 var latest=null,lt='';
 (records||[]).forEach(function(r){
 if(r.recordType!=='admins_config'||!r.data||!r.data.admins)return;
@@ -4864,15 +4864,16 @@ updateClassFilters();
 renderAdminDashboard();
 renderTrainingTable();
 renderEvalControlPanel();
-if(typeof renderAdminStudents==='function'&&document.getElementById('adminStudentList'))renderAdminStudents(1);
-if(typeof renderAdminAccounts==='function'&&document.getElementById('adminAccountList'))renderAdminAccounts(1);
+if(typeof renderAdminStudents==='function'&&document.getElementById('adminStudentList'))renderAdminStudents();
+if(typeof renderAdminAccounts==='function'&&document.getElementById('adminAccountList'))renderAdminAccounts();
 }catch(e){console.warn('refresh aux render error:',e)}
 if(cb)cb();
 }
 types.forEach(function(type){
 try{
-fetchAllApis([CLOUD2],function(records){
-(records||[]).forEach(function(r){
+fetchAllApis([CLOUD,CLOUD2],function(records){
+/* v23.6.1：并行返回的记录顺序不可靠，按时间升序应用，保证最后生效的是最新配置 */
+(records||[]).slice().sort(function(a,b){return String(a.submittedAt||a.createdAt||'').localeCompare(String(b.submittedAt||b.createdAt||''))}).forEach(function(r){
 var d=r.data||{};
 if(r.recordType==='dims_config'&&d.dims&&Array.isArray(d.dims)){
 dims=d.dims;safeSetItem('plc_dims',JSON.stringify(d.dims));
