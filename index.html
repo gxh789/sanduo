@@ -6678,15 +6678,12 @@ function renderAdminAccounts(page){
 if(!page)page=accountPage;
 accountPage=page;
 var userPins=safeJsonParse(strg.getItem('plc_user_pins'),{});
-var legacyRegisteredNames=safeJsonParse(strg.getItem('plc_user_names'),[]);
 var container=$('adminAccountList');
 if(!container)return;
-/* v23.1：账户名单以「当前学生名单」为主，本机注册名单只作补充。
-   班级汇总模式下不再执行云端 user_pins 合并，若只读本机名单，换设备/清缓存后这里会空白。 */
-var _nameSet={};
-Object.keys(adminStudentMap||{}).forEach(function(n){if(n&&n!=='admin')_nameSet[n]=true});
-(legacyRegisteredNames||[]).forEach(function(n){if(n&&n!=='admin')_nameSet[n]=true});
-var registeredNames=Object.keys(_nameSet);
+/* v23.7：账户名单只认「当前学生名单」。
+   本机 plc_user_names 会残留历史/测试姓名，合并进来会把已不存在的人重新显示成账户；
+   这也是账户数从 95 涨到 186 的原因。 */
+var registeredNames=Object.keys(adminStudentMap||{}).filter(function(n){return n&&n!=='admin'});
 /* v21：科目 + 学校 + 班级 三重过滤统一走 studentInAdminScope */
 registeredNames=registeredNames.filter(function(name){return studentInAdminScope(scopeStubForName(name))});
 registeredNames=registeredNames.filter(function(name){return isStudentInCategory(name)});
